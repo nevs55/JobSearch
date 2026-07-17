@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Erik Neville | Job Tracker 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e13;--surface:#13161f;--card:#181c27;--card-hov:#1d2233;
+    --border:#222b3b;--accent:#00d4aa;--accent2:#f5a623;--text:#d4dced;--muted:#677090;
+    --t1:#00d4aa;--t2:#5b9cf6;--t3:#a084e8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+
+  /* ── HEADER ── */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 20px 0;}
+  .header-top{max-width:1060px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-bottom:16px;}
+  .hl h1{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;letter-spacing:-.03em;color:#fff;}
+  .hl h1 em{color:var(--accent);font-style:normal;}
+  .hl p{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-top:3px;}
+  .stats{display:flex;gap:18px;flex-wrap:wrap;}
+  .stat .n{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;color:var(--accent);line-height:1;}
+  .stat .l{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+
+  /* ── TABS ── */
+  .tab-bar{max-width:1060px;margin:0 auto;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding-bottom:0;}
+  .tab-bar::-webkit-scrollbar{display:none;}
+  .tab{font-family:'DM Mono',monospace;font-size:.65rem;font-weight:500;padding:9px 16px;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:none;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .14s;background:transparent;letter-spacing:.05em;text-transform:uppercase;}
+  .tab:hover{color:var(--text);background:rgba(255,255,255,.04);}
+  .tab.active{color:#fff;background:var(--bg);border-color:var(--border);border-bottom-color:var(--bg);}
+  .tab .cnt{display:inline-block;background:rgba(255,255,255,.08);border-radius:10px;padding:1px 6px;font-size:.55rem;margin-left:5px;color:var(--muted);}
+  .tab.active .cnt{background:rgba(0,212,170,.15);color:var(--accent);}
+
+  /* ── BODY ── */
+  .body{max-width:1060px;margin:0 auto;padding:18px 14px 60px;}
+
+  /* ── NOTICE ── */
+  .notice{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.2);border-radius:8px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:.64rem;color:var(--accent);letter-spacing:.04em;margin-bottom:14px;}
+  .notice strong{color:#fff;}
+
+  /* ── FILTER BAR ── */
+  .fbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .flbl{font-family:'DM Mono',monospace;font-size:.59rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-right:2px;}
+  .fb{font-family:'DM Mono',monospace;font-size:.61rem;padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;text-transform:uppercase;letter-spacing:.05em;}
+  .fb:hover{border-color:var(--accent);color:var(--accent);}
+  .fb.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:500;}
+
+  /* ── JOB CARDS ── */
+  .job-list{display:grid;gap:8px;}
+  .jc{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px 16px;display:grid;grid-template-columns:1fr auto;transition:border-color .12s,background .12s;animation:up .18s ease both;}
+  .jc:hover{border-color:rgba(0,212,170,.35);background:var(--card-hov);}
+  @keyframes up{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+  .jmain{grid-column:1;padding-right:10px;}
+  .jright{grid-column:2;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:118px;}
+  .jt{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:#fff;line-height:1.3;}
+  .jrn{font-family:'DM Mono',monospace;font-size:.56rem;color:var(--muted);margin-right:4px;}
+  .jco{font-family:'DM Mono',monospace;font-size:.66rem;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+  .badge{font-family:'DM Mono',monospace;font-size:.56rem;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+  .b1{background:rgba(0,212,170,.1);color:var(--t1);border:1px solid rgba(0,212,170,.24);}
+  .b2{background:rgba(91,156,246,.1);color:var(--t2);border:1px solid rgba(91,156,246,.24);}
+  .b3{background:rgba(160,132,232,.1);color:var(--t3);border:1px solid rgba(160,132,232,.24);}
+  .mrow{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);}
+  .mbar{width:62px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .mfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+  .jfoot{grid-column:1/3;margin-top:9px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .jnote{font-size:.75rem;color:var(--muted);line-height:1.52;flex:1;min-width:150px;}
+  .jact{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;}
+  .jtags{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;}
+  .tag{font-family:'DM Mono',monospace;font-size:.52rem;padding:2px 6px;border-radius:3px;background:var(--surface);border:1px solid var(--border);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .tag.r{color:#f5c842;border-color:rgba(245,200,66,.2);}
+  .tag.b{color:#7ecde8;border-color:rgba(126,205,232,.2);}
+  .tag.v{color:#a0d9a0;border-color:rgba(160,217,160,.2);}
+  .src{font-family:'DM Mono',monospace;font-size:.5rem;color:var(--muted);opacity:.5;font-style:italic;}
+  .al{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--accent);text-decoration:none;text-transform:uppercase;letter-spacing:.06em;opacity:.8;transition:opacity .12s;}
+  .al:hover{opacity:1;text-decoration:underline;}
+  .empty{text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:.74rem;padding:32px 0;}
+
+  /* ── PAGE: TRACKER ── */
+  .page{display:none;}
+  .page.active{display:block;}
+
+  /* ── PAGE: COMPANIES ── */
+  .company-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+  .company-card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px 16px;transition:border-color .12s;}
+  .company-card:hover{border-color:rgba(0,212,170,.35);}
+  .cc-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:#fff;}
+  .cc-type{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+  .cc-roles{font-size:.76rem;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .cc-link{display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--accent);text-decoration:none;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
+  .cc-link:hover{opacity:1;text-decoration:underline;}
+  .cc-count{float:right;font-family:'DM Mono',monospace;font-size:.58rem;padding:2px 8px;border-radius:10px;background:rgba(0,212,170,.1);color:var(--accent);border:1px solid rgba(0,212,170,.2);}
+
+  /* ── PAGE: TIPS ── */
+  .tips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;}
+  .tip-card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:16px;}
+  .tip-card h3{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:#fff;margin-bottom:6px;}
+  .tip-card p,.tip-card li{font-size:.76rem;color:var(--muted);line-height:1.6;}
+  .tip-card ul{padding-left:14px;margin-top:4px;}
+  .tip-label{font-family:'DM Mono',monospace;font-size:.56rem;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px;}
+  .tip-label.hot{background:rgba(0,212,170,.12);color:var(--t1);border:1px solid rgba(0,212,170,.22);}
+  .tip-label.warn{background:rgba(245,166,35,.12);color:var(--accent2);border:1px solid rgba(245,166,35,.22);}
+  .tip-label.info{background:rgba(91,156,246,.12);color:var(--t2);border:1px solid rgba(91,156,246,.22);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="hl">
+      <h1>Job <em>Targets</em> 2026</h1>
+      <p>Erik Neville · Senior SA / Pre-Sales SE · Remote or Greater Boston · Jul 17 2026</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="s-tot">50</div><div class="l">Roles</div></div>
+      <div class="stat"><div class="n" id="s-t1">—</div><div class="l">🔥 Strong</div></div>
+      <div class="stat"><div class="n" id="s-ne">—</div><div class="l">NE/Boston</div></div>
+      <div class="stat"><div class="n" id="s-rem">—</div><div class="l">Remote-ok</div></div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" data-tab="tracker">📋 All Jobs <span class="cnt" id="tc-all">50</span></button>
+    <button class="tab" data-tab="strong">🔥 Strong Fit <span class="cnt" id="tc-t1">—</span></button>
+    <button class="tab" data-tab="vendor">Vendor-Direct <span class="cnt" id="tc-vendor">—</span></button>
+    <button class="tab" data-tab="var">VAR / MSP <span class="cnt" id="tc-var">—</span></button>
+    <button class="tab" data-tab="bcdr">BCDR <span class="cnt" id="tc-bcdr">—</span></button>
+    <button class="tab" data-tab="hci">HCI / Infra <span class="cnt" id="tc-hci">—</span></button>
+    <button class="tab" data-tab="storage">Storage <span class="cnt" id="tc-storage">—</span></button>
+    <button class="tab" data-tab="ne">NE / Boston <span class="cnt" id="tc-ne">—</span></button>
+    <button class="tab" data-tab="companies">🏢 Companies</button>
+    <button class="tab" data-tab="tips">💡 Strategy</button>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- ALL JOBS / FILTERED VIEWS -->
+  <div class="page active" id="page-tracker">
+    <div class="notice">✓ <strong>Remote or Greater Boston only.</strong> All listings sourced from official ATS / career pages Jul 17 2026. Apply links go directly to employer.</div>
+    <div class="job-list" id="job-list"></div>
+  </div>
+
+  <div class="page" id="page-strong"></div>
+  <div class="page" id="page-vendor"></div>
+  <div class="page" id="page-var"></div>
+  <div class="page" id="page-bcdr"></div>
+  <div class="page" id="page-hci"></div>
+  <div class="page" id="page-storage"></div>
+  <div class="page" id="page-ne"></div>
+
+  <!-- COMPANIES PAGE -->
+  <div class="page" id="page-companies">
+    <div class="notice">All companies below have at least one confirmed open pre-sales SA / SE role matching your profile as of Jul 17 2026.</div>
+    <div class="company-grid" id="company-grid"></div>
+  </div>
+
+  <!-- TIPS PAGE -->
+  <div class="page" id="page-tips">
+    <div class="tips-grid">
+      <div class="tip-card">
+        <span class="tip-label hot">Top 3 Apply Now</span>
+        <h3>Highest-probability roles this week</h3>
+        <ul>
+          <li><strong>SHI Strategic SE</strong> — JD is literally your resume. $160K–$260K remote. Apply at builtin.com/job/solutions-engineer-strategic/7458017</li>
+          <li><strong>Blue Mantis Presales Enterprise Architect</strong> — NE-based MSP, posted 3 weeks ago, widest vendor match. Apply at builtin.com/job/presales-enterprise-architect/9905256</li>
+          <li><strong>Nutanix SSE Boston/Hartford</strong> — Live Apply Now button, $165K–$248K. Your NCP cert is the differentiator. careers.nutanix.com/en/jobs/n2317</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label warn">Pure Storage Note</span>
+        <h3>Pure Storage rebranded to Everpure</h3>
+        <p>All Pure Storage job postings now appear under the Everpure brand on Greenhouse. The CT Enterprise SE role (job 8042530) is the only live NE-adjacent Pure/Everpure seat right now. The old "Systems Engineer, Commercial – MA" LinkedIn listing is closed — do not apply to it.</p>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label info">Rubrik Reality Check</span>
+        <h3>No NE commercial SE seats open</h3>
+        <p>Rubrik's careers page was fetched directly Jul 17 2026. US openings are CA, OH, NC, TX, and US-Remote Federal/AI only. No NE commercial SE seat exists today. Best current Rubrik path: GSI Global SA – Cognizant (US Remote) or set a job alert on rubrik.com/company/careers.</p>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label info">Veeam Strategy</span>
+        <h3>No NE SE seat — but pipeline is right</h3>
+        <p>Veeam's nearest US SE seat is MN (Jan 2026). Apply to it anyway — Veeam frequently reassigns territory post-hire for strong candidates. Also apply to the Lead Solutions Architect (Greenhouse 4856683101) which is architecture-heavy and remote. Set alert at careers.veeam.com for "Northeast" or "Massachusetts."</p>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label hot">Cert Leverage</span>
+        <h3>Certs that open doors right now</h3>
+        <ul>
+          <li><strong>NCP-MCI</strong> → Nutanix, ePlus, Presidio, SHI, BlackHawk Data — all list Nutanix as required</li>
+          <li><strong>Pure/Everpure FlashArray Architect Associate</strong> → Everpure SE roles, SHI Strategic SE, NetApp SE</li>
+          <li><strong>VCP-DCV</strong> → CDW, Presidio, ePlus, Blue Mantis, SHI SDDC SA</li>
+          <li><strong>AWS SAA-C03 (in progress)</strong> → Commvault Cloud SE, Cohesity SE, Dell Data Mgmt SE — all mention AWS</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label warn">Salary Ranges</span>
+        <h3>What these roles are paying in 2026</h3>
+        <ul>
+          <li>Nutanix SSE Boston: $165K–$248K</li>
+          <li>Everpure SE CT: $141K–$212K</li>
+          <li>HPE/Zerto PSE: $146K–$343K</li>
+          <li>SHI Strategic SE: $160K–$260K</li>
+          <li>Cohesity SA: $137K–$171K + equity</li>
+          <li>Veeam Sr. SSE: ~$150K–$200K est.</li>
+          <li>Commvault SE: ~$140K–$190K est.</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label info">Job Alert Setup</span>
+        <h3>Set these 5 alerts today</h3>
+        <ul>
+          <li><strong>careers.veeam.com</strong> → "Systems Engineer" + Northeast / Massachusetts</li>
+          <li><strong>rubrik.com/company/careers</strong> → "Sales Engineer" + United States</li>
+          <li><strong>careers.nutanix.com</strong> → "Systems Engineer" + Boston / New England</li>
+          <li><strong>careers.purestorage.com</strong> → "Systems Engineer" + Boston / Northeast</li>
+          <li><strong>presidio.com/careers</strong> → "Solutions Architect" + New England</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label hot">VAR Approach</span>
+        <h3>How to work the VAR pipeline</h3>
+        <p>SHI, Blue Mantis, ePlus, Presidio, CDW, and Connection all hire from referrals and partner vendor relationships. If you know any AMs or SEs at these firms from past VAR work, reach out directly before applying cold — a warm intro jumps you ahead of the ATS queue at every one of these companies.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const J=[
+{r:1,t:"Systems Sales Engineer – Boston/Hartford",co:"Nutanix",tier:1,tags:["vendor","hci","ne"],remote:true,m:94,note:"Live on Nutanix Careers (n2317), Apply Now active. Boston/Hartford territory. $165K–$248K. Pre-sales trusted advisor, POC delivery. Your NCP cert is a hard differentiator.",url:"https://careers.nutanix.com/en/jobs/n2317/systems-sales-engineer/",src:"Verified: careers.nutanix.com/n2317"},
+{r:2,t:"Sr. Pre-Sales SE, Enterprise – Connecticut",co:"Everpure (fmr. Pure Storage)",tier:1,tags:["vendor","storage","ne"],remote:true,m:93,note:"Confirmed live on Greenhouse (8042530), active Apply form, no deadline. Remote CT, NE enterprise accounts. $141K–$212K. 5+ yrs storage pre-sales, FC/iSCSI/NAS/SAN. Your FlashArray cert is the differentiator.",url:"https://job-boards.greenhouse.io/purestorage/jobs/8042530",src:"Verified: greenhouse.io/purestorage/8042530"},
+{r:3,t:"Senior Solutions Architect – Databases & Cyber Resilience",co:"Commvault",tier:1,tags:["vendor","bcdr"],remote:true,m:91,note:"Live on Commvault careers (R0013153). US Remote overlay specialist for BCDR/database engagements. Pre-sales heavy. Your Veeam/Rubrik/Commvault cross-stack depth is the exact ask.",url:"https://www.commvault.com/careers/jobs/5231304008",src:"Verified: commvault.com R0013153"},
+{r:4,t:"Strategic SaaS Sales Engineer – Remote USA East",co:"Commvault",tier:1,tags:["vendor","bcdr"],remote:true,m:88,note:"Live (R0013114). Remote US East. Pre-sales SE for Commvault Cloud SaaS — ransomware recovery, cyber resilience. East coverage aligns to your territory.",url:"https://www.commvault.com/careers/jobs/5205867008",src:"Verified: commvault.com R0013114"},
+{r:5,t:"Sales Engineer – MD/VA/DC (nearest live Commvault SE seat)",co:"Commvault",tier:1,tags:["vendor","bcdr"],remote:true,m:84,note:"Live (R0013235). Remote MD/VA/DC. Pre-sales SE. Closest Commvault SE seat to NE — hire often leads to territory reassignment. Your BCDR depth fully relevant.",url:"https://www.commvault.com/careers/jobs/5250158008",src:"Verified: commvault.com R0013235"},
+{r:6,t:"Sr. Sales Systems Engineer – Minnesota (nearest live Veeam US SE)",co:"Veeam",tier:1,tags:["vendor","bcdr"],remote:true,m:85,note:"Confirmed posted Jan 22 2026, careers.veeam.com. Remote. Enterprise pre-sales SE, cyber recovery. Territory MN but remote — Veeam posts NE seats frequently. Apply now to get in pipeline.",url:"https://careers.veeam.com/job/minnesota/sr-sales-systems-engineer-minnesota/22681/90929503392",src:"Verified: careers.veeam.com — Jan 2026"},
+{r:7,t:"Lead Solutions Architect (Pre-Sales)",co:"Veeam",tier:1,tags:["vendor","bcdr"],remote:true,m:83,note:"Confirmed live on Greenhouse (4856683101, May 2026). Pre/post-sales architect bridging field SE and product. Designs availability solutions, data protection, multi-cloud. Your wheelhouse.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4856683101",src:"Verified: greenhouse.io/veeamsoftware/4856683101"},
+{r:8,t:"Sr. Sales Systems Engineer – Texas (remote, adjacent listing)",co:"Veeam",tier:2,tags:["vendor","bcdr"],remote:true,m:79,note:"Confirmed live Greenhouse (4851373101). Remote TX. Same enterprise SE JD — VMware, Hyper-V, Nutanix AHV, storage, cyber recovery. Apply to get in Veeam pipeline and request territory conversation.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4851373101",src:"Verified: greenhouse.io/veeamsoftware/4851373101"},
+{r:9,t:"Senior Sales Engineer – US Remote",co:"Cohesity",tier:1,tags:["vendor","bcdr"],remote:true,m:86,note:"Multiple active SE roles on BuiltIn/Wellfound. SE drives POCs, demos, workshops. Your cross-stack BCDR depth (Veeam + Rubrik + Cohesity) differentiates you from single-vendor candidates.",url:"https://builtin.com/company/cohesity/jobs",src:"Active: builtin.com/company/cohesity"},
+{r:10,t:"Pre-Sales Solutions Architect – US Remote",co:"Cohesity",tier:1,tags:["vendor","bcdr"],remote:true,m:84,note:"Active on Accel job board ($137K–$171K + equity). Uncover new opportunities, POCs, architecture workshops. Post-Veritas merger expanded their SE team.",url:"https://jobs.accel.com/companies/cohesity/jobs/85950721-solutions-architect",src:"Active: jobs.accel.com/cohesity"},
+{r:11,t:"Sr. SE, UDS Data Management – East (Remote Massachusetts)",co:"Dell Technologies",tier:1,tags:["vendor","storage","ne"],remote:true,m:87,note:"Confirmed live on Dell Workday (R285911), Remote Massachusetts explicitly listed, posted Apr 2026. Pre-sales SE supporting field sales on data management, unstructured storage, hybrid cloud.",url:"https://dell.wd1.myworkdayjobs.com/external/job/remote---massachusetts-united-states/senior-systems-engineer--uds-data-management---east_r285911",src:"Verified: dell.wd1.myworkdayjobs.com R285911"},
+{r:12,t:"Zerto Pre Sales Engineer – Remote US",co:"HPE / Zerto",tier:1,tags:["vendor","bcdr"],remote:true,m:86,note:"Confirmed live on HPE Workday (job 1191961). Remote/Teleworker. DR, data protection, cloud migration pre-sales. Your Veeam + DR architecture knowledge maps directly. $146K–$343K.",url:"https://hpe.wd5.myworkdayjobs.com/ACJobSite/job/Los-Angeles-California/Zerto-Pre-Sales-Engineer_1191961",src:"Verified: hpe.wd5.myworkdayjobs.com 1191961"},
+{r:13,t:"Sr. GSI Global Solutions Architect – Cognizant",co:"Rubrik",tier:2,tags:["vendor","bcdr"],remote:true,m:80,note:"Confirmed live on Rubrik careers (US Remote). GSI overlay SA supporting Cognizant partnership. Best currently available Rubrik option — no direct NE commercial SE seat open today.",url:"https://www.rubrik.com/company/careers/departments/job.7405650.73920?reqId=10116",src:"Verified: rubrik.com/careers"},
+{r:14,t:"Sr. Sales Engineer – Federal (US Remote)",co:"Rubrik",tier:3,tags:["vendor","bcdr"],remote:true,m:68,note:"Confirmed live on Rubrik careers. Verify clearance requirements. If clearance-free, your BCDR depth is a strong fit. No direct commercial NE seat open.",url:"https://www.rubrik.com/company/careers/departments/job.7375599.73920?reqId=10006",src:"Verified: rubrik.com/careers"},
+{r:15,t:"Sr. Sales Engineer – Healthcare – NC (remote-eligible)",co:"Rubrik",tier:2,tags:["vendor","bcdr"],remote:true,m:74,note:"Confirmed live on Rubrik careers (NC). Healthcare vertical SE. Remote-eligible. Healthcare vertical from VAR days is relevant.",url:"https://www.rubrik.com/company/careers/departments/job.7962991.73920?reqId=11001",src:"Verified: rubrik.com/careers"},
+{r:16,t:"Sales Engineer – SaaS Specialist (multi-state remote)",co:"Rubrik",tier:2,tags:["vendor","bcdr"],remote:true,m:72,note:"Confirmed live on Rubrik careers (AZ/CA/CO/NV/OR/UT/WA). SaaS data protection SE — M365, Google Workspace, Salesforce backup. Adjacent to your BCDR background.",url:"https://www.rubrik.com/company/careers/departments/job.7871817.73920?reqId=10907",src:"Verified: rubrik.com/careers"},
+{r:17,t:"Sr. Senior SE, Federal/DOD – Remote DC/MD/VA",co:"Veeam",tier:2,tags:["vendor","bcdr"],remote:true,m:76,note:"Confirmed live careers.veeam.com (posted Apr 25 2026). Remote DC/MD/VA. Verify clearance. Strong Veeam + BCDR background is a match.",url:"https://careers.veeam.com/job/united-states/sr-systems-engineer-federal-dod-remote-dc-md-va/22681/94357113856",src:"Verified: careers.veeam.com Apr 2026"},
+{r:18,t:"Senior Solutions Engineer – Washington D.C. (remote, East-adjacent)",co:"NetApp",tier:2,tags:["vendor","storage"],remote:true,m:80,note:"Confirmed live on NetApp Careers. Remote DC. Pre-sales SE, storage architecture, hybrid cloud, trusted advisor. Your multi-vendor storage SA background is highly relevant.",url:"https://careers.netapp.com/job/united-states/senior-solutions-engineer-washington-d-c/27600/91063176240",src:"Verified: careers.netapp.com"},
+{r:19,t:"Enterprise Solutions Engineer – Atlanta (remote-eligible)",co:"NetApp",tier:2,tags:["vendor","storage"],remote:true,m:77,note:"Confirmed live on NetApp Careers. Remote Atlanta. Same pre-sales SE JD. Storage architecture, partner channel engagement. Monitor for explicit NE posting.",url:"https://careers.netapp.com/job/atlanta/enterprise-solutions-engineer-atlanta/27600/95672036736",src:"Verified: careers.netapp.com"},
+{r:20,t:"Pre-Sales Solutions Architect – Boston HQ",co:"Wasabi Technologies",tier:1,tags:["vendor","storage","ne"],remote:true,m:84,note:"Boston-HQ'd cloud storage company. SA role active on BuiltIn. Pre-sales: partner cloud storage integration, S3/object storage. Your Veeam integration knowledge maps to their partner ecosystem.",url:"https://builtin.com/company/wasabi-technologies/jobs",src:"Active: builtin.com/company/wasabi-technologies"},
+{r:21,t:"Sr. Pre-Sales SE, SLED – NJ",co:"Everpure (fmr. Pure Storage)",tier:2,tags:["vendor","storage"],remote:true,m:77,note:"Confirmed live Greenhouse (7776197). Remote NJ SLED. Closest Everpure SE seat after CT. SLED background not required — worth a conversation with your FlashArray cert.",url:"https://job-boards.greenhouse.io/purestorage/jobs/7776197",src:"Verified: greenhouse.io/purestorage/7776197"},
+{r:22,t:"Sr. Pre-Sales SE, Enterprise – Baltimore/DC",co:"Everpure (fmr. Pure Storage)",tier:3,tags:["vendor","storage"],remote:true,m:71,note:"Confirmed live Greenhouse (6604404). Remote Baltimore/DC. Geographic fallback if CT role fills. Same JD and comp range.",url:"https://job-boards.greenhouse.io/purestorage/jobs/6604404",src:"Verified: greenhouse.io/purestorage/6604404"},
+{r:23,t:"Solutions Engineer – Boston (pre-sales, networking)",co:"Cisco",tier:2,tags:["vendor","ne"],remote:false,m:73,note:"Confirmed live on Cisco Careers (posted May 2026, Boston). Pre-sales SE. Your Cisco UCS datacenter background is directly relevant. Office-based in Boston.",url:"https://careers.cisco.com/global/en/job/CISCISGLOBAL2017907EXTERNALENGLOBAL/Solutions-Engineer",src:"Verified: careers.cisco.com — Boston May 2026"},
+{r:24,t:"National Partner Business Manager – Insight",co:"Commvault",tier:3,tags:["vendor","bcdr","var"],remote:true,m:67,note:"Live (R0013362). Partner/channel BDM. More sales than technical but your VAR background and BCDR depth makes this credible. Pivot option.",url:"https://www.commvault.com/careers/jobs/5342664008",src:"Verified: commvault.com R0013362"},
+{r:25,t:"Cloud Resilience AE – East (MA/FL/GA/IL/NY/NC)",co:"Commvault",tier:3,tags:["vendor","bcdr"],remote:true,m:68,note:"Live (R0013035). AE selling Commvault Cloud SaaS, Massachusetts in territory list. AE pivot — your technical BCDR credibility shortens ramp dramatically.",url:"https://www.commvault.com/careers/jobs/5194244008",src:"Verified: commvault.com R0013035"},
+// VAR/MSP
+{r:26,t:"Solutions Engineer – Strategic – Remote",co:"SHI International",tier:1,tags:["var","storage","bcdr","hci"],remote:true,m:91,note:"Active on BuiltIn ($160K–$260K). JD reads like your resume: Dell, NetApp, HPE, Cisco, Pure, AWS, Veeam, Nutanix all required. BCDR/HA/DR explicitly called out. Advanced cert in any preferred — you have several.",url:"https://builtin.com/job/solutions-engineer-strategic/7458017",src:"Active: builtin.com — SHI Strategic SE"},
+{r:27,t:"Enterprise Solutions Engineer – Boston",co:"SHI International",tier:1,tags:["var","storage","bcdr","hci","ne"],remote:false,m:90,note:"Active on BuiltIn (Aug 2025). Boston office. Identical JD: Dell, NetApp, HPE, Cisco, Pure, AWS, Veeam, Nutanix, BCDR, HCI, SDDC. Your 20+ yr background hits every checkbox.",url:"https://builtin.com/job/enterprise-solutions-engineer-boston/6794130",src:"Active: builtin.com — SHI Boston"},
+{r:28,t:"Solutions Engineer – Commercial – Remote",co:"SHI International",tier:2,tags:["var","storage","bcdr","hci"],remote:true,m:82,note:"Active on BuiltIn. Same multi-vendor stack as Strategic SE but commercial segment. Good fallback if Strategic seat fills.",url:"https://builtin.com/job/solutions-engineer-commercial/6794125",src:"Active: builtin.com — SHI Commercial SE"},
+{r:29,t:"Pre-Sales Solutions Architect – Data Protection – Remote",co:"SHI International",tier:1,tags:["var","bcdr","storage"],remote:true,m:86,note:"Active on Indeed (SHI presales search). Remote US. Consultative BCDR pre-sales SA — Rubrik, Cohesity, Veeam, Commvault stack. Your full BCDR toolkit is the JD.",url:"https://www.indeed.com/q-presales-architect-l-remote-jobs.html",src:"Active: indeed.com — SHI Data Protection SA"},
+{r:30,t:"Presales Solutions Architect – Platforms – Remote",co:"SHI International",tier:2,tags:["var","hci"],remote:true,m:76,note:"Active posted Mar 2026. Container, automation, hybrid cloud platform architecture. Your HCI background is relevant; container/DevOps is the stretch.",url:"https://jobgether.com/offer/69e02dc5c646310ee390492c-presales-solutions-architect---platforms",src:"Active: Jobgether — SHI Platforms SA"},
+{r:31,t:"Sr. Solutions Architect – SDDC – Remote",co:"SHI International",tier:2,tags:["var","hci","storage"],remote:true,m:81,note:"Active on Glassdoor. SDDC focus — VMware, NSX, vSAN, HCI, private cloud. Your VCP + SDDC design background from VAR roles is a direct fit.",url:"https://www.glassdoor.com/Jobs/SHI-International-presales-solutions-architect-Jobs-EI_IE14216.0,17_KO18,46.htm",src:"Active: Glassdoor — SHI SDDC SA"},
+{r:32,t:"Presales Enterprise Architect – Remote",co:"Blue Mantis",tier:1,tags:["var","ne","bcdr","hci","storage"],remote:true,m:93,note:"Confirmed active BuiltIn (3 weeks ago). NE-based MSP/VAR. Enterprise presales architecture — Cisco, Palo Alto, Fortinet, Juniper, Aruba, Dell, VMware, Nutanix, Pure Storage, hybrid cloud, BCDR, compliance. Lowest-friction play on this list.",url:"https://builtin.com/job/presales-enterprise-architect/9905256",src:"Active: builtin.com — Blue Mantis (3 weeks ago)"},
+{r:33,t:"Solutions Architect – BCDR / Cyber Resilience – NE",co:"Presidio (NE Region)",tier:1,tags:["var","bcdr","ne"],remote:true,m:89,note:"Presidio NE actively hiring BCDR SA post-Broadcom VMware disruption. Direct apply at presidio.com/careers. Rubrik, Veeam, Cohesity alignment.",url:"https://www.presidio.com/careers",src:"Apply direct: presidio.com/careers"},
+{r:34,t:"Sr. SA, Datacenter/Cloud – MI/OH/IN (remote-eligible)",co:"Presidio",tier:2,tags:["var","hci","storage","bcdr"],remote:true,m:80,note:"Active on Snagajob (2 weeks ago). Dell/EMC, Pure, Cisco, VMware, Nutanix, AWS. Pre-sales: proposals, POCs, architecture, SOWs. Remote-eligible — NE-based candidates considered.",url:"https://www.snagajob.com/jobs/1260891210",src:"Active: snagajob — Presidio (2 weeks ago)"},
+{r:35,t:"Solutions Architect – VMware / HCI – NE",co:"ePlus Technology (NE)",tier:1,tags:["var","hci","ne"],remote:true,m:87,note:"ePlus NE actively hiring HCI/infra SAs. Post-Broadcom disruption accelerating demand. Direct apply at eplus.com/careers. Your NCP, VCP, and VAR background hits every checkbox.",url:"https://www.eplus.com/careers",src:"Apply direct: eplus.com/careers"},
+{r:36,t:"Senior Solution Architect – Data, NE Region – Remote",co:"CDW",tier:2,tags:["var","ne","storage"],remote:true,m:82,note:"Active BuiltIn (reposted 8 days ago, $92K–$130K). NE Region explicitly listed. Pre-sales, data solutions and architecture. Your storage SA background directly relevant.",url:"https://builtin.com/job/senior-solution-architect-data-usa-ne-region-digital-velocity/7209138",src:"Active: builtin.com — CDW NE (8 days ago)"},
+{r:37,t:"Senior Solutions Architect (Pre-Sales) – Remote",co:"BlackHawk Data",tier:1,tags:["var","hci","storage","bcdr"],remote:true,m:88,note:"Active on Indeed. Designs multi-vendor infrastructure: Cisco, Dell, HPE, Lenovo, Nutanix, VMware. BOMs, SOWs, customer-facing architecture. Your 20+ yr multi-vendor SA background is a direct match.",url:"https://www.indeed.com/q-blackhawk-data-l-new-york,-ny-jobs.html",src:"Active: indeed.com — BlackHawk Data SA"},
+{r:38,t:"Solutions Architect – NE / Boston",co:"Connection (PC Connection)",tier:2,tags:["var","ne","hci","storage"],remote:true,m:79,note:"NH-HQ'd VAR with strong NE presence. Full infrastructure stack — compute, storage, HCI, BCDR. SA roles post periodically. Apply proactively.",url:"https://www.connection.com/content/about-us/careers",src:"Apply direct: connection.com/careers"},
+{r:39,t:"Solutions Architect – Boston / NE",co:"Thrive (MSP)",tier:2,tags:["var","ne","bcdr"],remote:true,m:76,note:"Boston-area MSP with growing BCDR practice. Remote-capable SA roles. Apply at thrivecloud.com/careers. Rubrik, Veeam, Nutanix alignment matches your background.",url:"https://thrivecloud.com/careers",src:"Apply direct: thrivecloud.com/careers"},
+{r:40,t:"Pre-Sales Solutions Architect – Remote",co:"eGroup",tier:2,tags:["var","hci","storage","bcdr"],remote:true,m:78,note:"Active on Remote Rocketship (Apr 2026). SI/VAR with datacenter, cloud, and BCDR practice. Pre-sales SA: design, demo, SOW. Your multi-vendor VAR background is the profile.",url:"https://www.remoterocketship.com/us/company/egroup-us/jobs/presales-solution-architect-united-states-remote/",src:"Active: remoterocketship.com — eGroup Apr 2026"},
+{r:41,t:"Solutions Architect – Infrastructure / Security – Remote",co:"Sentinel (VAR)",tier:2,tags:["var","hci","bcdr"],remote:true,m:77,note:"Active on Indeed presales storage search. Consulting SA designing infrastructure and security solutions. Cisco, VMware, HCI, BCDR. VAR pre-sales motion you know well.",url:"https://www.indeed.com/q-presales-storage-jobs.html",src:"Active: indeed.com — Sentinel SA"},
+{r:42,t:"Sr. Solutions Architect – SHI Labs / Cybersecurity – Remote",co:"SHI International",tier:2,tags:["var","bcdr"],remote:true,m:74,note:"Active on Glassdoor. SHI Labs internal practice — evaluates and builds cybersecurity and data protection offerings. Your BCDR + ransomware recovery depth is directly applicable.",url:"https://www.glassdoor.com/Jobs/SHI-International-presales-solutions-architect-Jobs-EI_IE14216.0,17_KO18,46.htm",src:"Active: Glassdoor — SHI Labs Cybersecurity SA"},
+// remaining fills
+{r:43,t:"Technical Account Manager – Enterprise",co:"Nutanix",tier:2,tags:["vendor","hci","ne"],remote:true,m:78,note:"Active on Nutanix Careers. TAM role — post-sales but architecture-heavy. Boston/NE territory. Your NCP + field delivery makes you credible at the table in a way most TAMs aren't.",url:"https://careers.nutanix.com",src:"Apply direct: careers.nutanix.com"},
+{r:44,t:"MSP Account Executive – Remote US",co:"Commvault",tier:3,tags:["vendor","bcdr","var"],remote:true,m:68,note:"Live (R0013191). AE-track. Your VAR/MSP background and BCDR depth makes the hybrid AE/SA motion at Commvault MSP worth considering.",url:"https://www.commvault.com/careers/jobs/5238644008",src:"Verified: commvault.com R0013191"},
+{r:45,t:"Federal Account Executive – Remote US",co:"Commvault",tier:3,tags:["vendor","bcdr"],remote:true,m:66,note:"Live (R0013151). AE-track, federal. Technical depth + BCDR background makes this a realistic pivot if SE track stays competitive.",url:"https://www.commvault.com/careers/jobs/5250777008",src:"Verified: commvault.com R0013151"},
+{r:46,t:"Presales Systems Engineer – HPE Networking (Aruba+Juniper) – Remote",co:"HPE",tier:2,tags:["vendor"],remote:true,m:72,note:"Active on Indeed (HPE networking SE). Remote US, Aruba/Juniper networking. Your enterprise networking depth from Cisco UCS and datacenter work is adjacent.",url:"https://www.indeed.com/q-hpe-solutions-engineer-jobs.html",src:"Active: indeed.com — HPE Networking SE"},
+{r:47,t:"Sr. Sales Engineer – Ohio / Strategic – Remote",co:"Rubrik",tier:2,tags:["vendor","bcdr"],remote:true,m:73,note:"Confirmed live on Rubrik careers (OH). Remote strategic accounts SE. No NE commercial seat open but strong BCDR fit. Apply to build relationship with Rubrik recruiting team.",url:"https://www.rubrik.com/company/careers/departments/job.7826311.73920?reqId=10877",src:"Verified: rubrik.com/careers — OH listing"},
+{r:48,t:"Pre-Sales Solutions Engineer – Network – Remote",co:"SHI International",tier:2,tags:["var"],remote:true,m:74,note:"Active ($120K–$230K). Networking-focused presales SE — Cisco, Palo Alto, SD-WAN. Secondary fit given networking depth from VAR days.",url:"https://www.glassdoor.com/Jobs/SHI-International-technical-sales-Jobs-EI_IE14216.0,17_KO18,33.htm",src:"Active: Glassdoor — SHI Network SE"},
+{r:49,t:"Solutions Architect – NE Region (CDW Digital Velocity / Data)",co:"CDW",tier:2,tags:["var","ne","storage"],remote:true,m:80,note:"Active BuiltIn (reposted 8 days ago). NE Region explicitly. Pre-sales Azure-based data solutions. CDW NE Digital Velocity practice growing.",url:"https://builtin.com/job/senior-solution-architect-data-usa-ne-region-digital-velocity/7209138",src:"Active: builtin.com — CDW NE (8 days ago)"},
+{r:50,t:"Solutions Architect – BCDR / MSP – Remote",co:"WWT / World Wide Technology",tier:2,tags:["var","bcdr"],remote:true,m:72,note:"WWT has a strong Veeam/Cohesity/Rubrik practice and remote SA roles. More central-US focused but roles are remote-eligible. Monitor wwt.com/careers for BCDR SA postings.",url:"https://www.wwt.com/careers",src:"Apply direct: wwt.com/careers"},
+];
+
+// ── COMPANY DATA ─────────────────────────────────────────────────────────
+const COMPANIES=[
+  {name:"SHI International",type:"VAR / National",roles:"Strategic SE, Enterprise SE Boston, Commercial SE, Data Protection SA, Platforms SA, SDDC SA, Cyber SA, Network SE",count:7,url:"https://builtin.com/job/solutions-engineer-strategic/7458017"},
+  {name:"Commvault",type:"Vendor — BCDR",roles:"DB & Cyber Resilience SA, SaaS SE East, SE MD/VA/DC, Cloud AE East, Federal AE, MSP AE, Partner BDM",count:7,url:"https://www.commvault.com/careers/jobs"},
+  {name:"Everpure (Pure Storage)",type:"Vendor — Storage",roles:"Sr. SE Enterprise CT, Sr. SE SLED NJ, Sr. SE Enterprise Baltimore/DC",count:3,url:"https://job-boards.greenhouse.io/purestorage"},
+  {name:"Veeam",type:"Vendor — BCDR",roles:"Sr. SSE Minnesota, Lead Solutions Architect, Sr. SSE Texas, Sr. SE Federal DOD DC/MD/VA",count:4,url:"https://careers.veeam.com"},
+  {name:"Rubrik",type:"Vendor — BCDR/Security",roles:"GSI SA Cognizant, Sr. SE Federal, Sr. SE Healthcare NC, SE SaaS Specialist",count:4,url:"https://www.rubrik.com/company/careers/departments/sales-engineering"},
+  {name:"Nutanix",type:"Vendor — HCI",roles:"Systems Sales Engineer Boston/Hartford, TAM Enterprise NE",count:2,url:"https://careers.nutanix.com/en/jobs/n2317/systems-sales-engineer/"},
+  {name:"Cohesity",type:"Vendor — BCDR/Storage",roles:"Senior Sales Engineer Remote, Pre-Sales Solutions Architect Remote",count:2,url:"https://builtin.com/company/cohesity/jobs"},
+  {name:"Dell Technologies",type:"Vendor — Storage/Infra",roles:"Sr. SE UDS Data Management East (Remote Massachusetts)",count:1,url:"https://dell.wd1.myworkdayjobs.com/external/job/remote---massachusetts-united-states/senior-systems-engineer--uds-data-management---east_r285911"},
+  {name:"HPE / Zerto",type:"Vendor — BCDR/Networking",roles:"Zerto Pre Sales Engineer (Remote US), HPE Networking SE (Remote US)",count:2,url:"https://hpe.wd5.myworkdayjobs.com/ACJobSite/job/Los-Angeles-California/Zerto-Pre-Sales-Engineer_1191961"},
+  {name:"NetApp",type:"Vendor — Storage",roles:"Sr. SE Washington DC (remote), Enterprise SE Atlanta (remote)",count:2,url:"https://careers.netapp.com"},
+  {name:"Wasabi Technologies",type:"Vendor — Storage",roles:"Pre-Sales Solutions Architect (Boston HQ)",count:1,url:"https://builtin.com/company/wasabi-technologies/jobs"},
+  {name:"Cisco",type:"Vendor — Networking",roles:"Solutions Engineer Boston (office)",count:1,url:"https://careers.cisco.com/global/en/job/CISCISGLOBAL2017907EXTERNALENGLOBAL/Solutions-Engineer"},
+  {name:"Blue Mantis",type:"VAR / NE MSP",roles:"Presales Enterprise Architect (Remote, NE-based)",count:1,url:"https://builtin.com/job/presales-enterprise-architect/9905256"},
+  {name:"Presidio",type:"VAR",roles:"SA BCDR/Cyber Resilience NE, Sr. SA Datacenter/Cloud MI/OH/IN",count:2,url:"https://www.presidio.com/careers"},
+  {name:"ePlus Technology",type:"VAR / NE",roles:"SA VMware / HCI NE",count:1,url:"https://www.eplus.com/careers"},
+  {name:"CDW",type:"VAR / National",roles:"Sr. SA Data NE Region (x2)",count:2,url:"https://builtin.com/job/senior-solution-architect-data-usa-ne-region-digital-velocity/7209138"},
+  {name:"BlackHawk Data",type:"VAR / NYC",roles:"Senior Solutions Architect (Pre-Sales) Remote",count:1,url:"https://www.indeed.com/q-blackhawk-data-l-new-york,-ny-jobs.html"},
+  {name:"Connection (PC Connection)",type:"VAR / NE",roles:"Solutions Architect NE/Boston",count:1,url:"https://www.connection.com/content/about-us/careers"},
+  {name:"Thrive (MSP)",type:"MSP / NE",roles:"Solutions Architect Boston/NE",count:1,url:"https://thrivecloud.com/careers"},
+  {name:"eGroup",type:"VAR / SI",roles:"Pre-Sales Solutions Architect (Remote)",count:1,url:"https://www.remoterocketship.com/us/company/egroup-us/jobs/presales-solution-architect-united-states-remote/"},
+  {name:"Sentinel",type:"VAR",roles:"Solutions Architect Infrastructure/Security (Remote)",count:1,url:"https://www.indeed.com/q-presales-storage-jobs.html"},
+  {name:"WWT",type:"VAR / National",roles:"SA BCDR/MSP Remote",count:1,url:"https://www.wwt.com/careers"},
+];
+
+function tl(t){
+  if(t===1)return{cls:"b1",txt:"🔥 Strong"};
+  if(t===2)return{cls:"b2",txt:"✦ Good"};
+  return{cls:"b3",txt:"◈ Stretch"};
+}
+
+function renderJobs(data,containerId){
+  const el=document.getElementById(containerId)||document.querySelector(".job-list");
+  if(!data.length){el.innerHTML='<div class="empty">No roles match.</div>';return;}
+  el.innerHTML=data.map((j,i)=>{
+    const t=tl(j.tier);
+    const ne=j.tags.includes("ne")?`<span class="tag b">NE/Boston</span>`:"";
+    const rem=j.remote?`<span class="tag r">Remote</span>`:`<span class="tag">On-site</span>`;
+    const typ=j.tags.includes("vendor")?`<span class="tag v">Vendor</span>`:`<span class="tag">VAR/MSP</span>`;
+    const ext=j.tags.filter(x=>!["ne","vendor","var"].includes(x)).map(x=>`<span class="tag">${x.toUpperCase()}</span>`).join("");
+    return `<div class="jc" style="animation-delay:${i*.02}s">
+      <div class="jmain">
+        <div class="jt"><span class="jrn">#${j.r}</span>${j.t}</div>
+        <div class="jco">${j.co}</div>
+      </div>
+      <div class="jright">
+        <span class="badge ${t.cls}">${t.txt}</span>
+        <div class="mrow"><div class="mbar"><div class="mfill" style="width:${j.m}%"></div></div><span>${j.m}%</span></div>
+      </div>
+      <div class="jfoot">
+        <span class="jnote">${j.note}<br><span class="src">${j.src}</span></span>
+        <div class="jact">
+          <div class="jtags">${typ}${ne}${rem}${ext}</div>
+          <a class="al" href="${j.url}" target="_blank">Apply →</a>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderCompanies(){
+  document.getElementById("company-grid").innerHTML=COMPANIES.map(c=>`
+    <div class="company-card">
+      <div><span class="cc-count">${c.count} role${c.count>1?"s":""}</span>
+      <div class="cc-name">${c.name}</div>
+      <div class="cc-type">${c.type}</div></div>
+      <div class="cc-roles">${c.roles}</div>
+      <a class="cc-link" href="${c.url}" target="_blank">View openings →</a>
+    </div>`).join("");
+}
+
+function updateStats(data){
+  document.getElementById("s-tot").textContent=data.length;
+  document.getElementById("s-t1").textContent=data.filter(j=>j.tier===1).length;
+  document.getElementById("s-ne").textContent=data.filter(j=>j.tags.includes("ne")).length;
+  document.getElementById("s-rem").textContent=data.filter(j=>j.remote).length;
+}
+
+function updateCounts(){
+  document.getElementById("tc-all").textContent=J.length;
+  document.getElementById("tc-t1").textContent=J.filter(j=>j.tier===1).length;
+  document.getElementById("tc-vendor").textContent=J.filter(j=>j.tags.includes("vendor")).length;
+  document.getElementById("tc-var").textContent=J.filter(j=>j.tags.includes("var")).length;
+  document.getElementById("tc-bcdr").textContent=J.filter(j=>j.tags.includes("bcdr")).length;
+  document.getElementById("tc-hci").textContent=J.filter(j=>j.tags.includes("hci")).length;
+  document.getElementById("tc-storage").textContent=J.filter(j=>j.tags.includes("storage")).length;
+  document.getElementById("tc-ne").textContent=J.filter(j=>j.tags.includes("ne")).length;
+}
+
+const FILTER_MAP={
+  tracker:null, strong:"t1", vendor:"vendor", var:"var",
+  bcdr:"bcdr", hci:"hci", storage:"storage", ne:"ne",
+  companies:null, tips:null
+};
+
+function switchTab(tabId){
+  // hide all pages
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelector(`[data-tab="${tabId}"]`).classList.add("active");
+
+  const pageEl=document.getElementById(`page-${tabId}`);
+  pageEl.classList.add("active");
+
+  if(tabId==="companies"){renderCompanies();updateStats(J);return;}
+  if(tabId==="tips"){updateStats(J);return;}
+
+  const filter=FILTER_MAP[tabId];
+  let data;
+  if(!filter) data=J;
+  else if(filter==="t1") data=J.filter(j=>j.tier===1);
+  else data=J.filter(j=>j.tags.includes(filter));
+
+  updateStats(data);
+
+  // render into correct container
+  let listEl=pageEl.querySelector(".job-list");
+  if(!listEl){
+    listEl=document.createElement("div");
+    listEl.className="job-list";
+    pageEl.appendChild(listEl);
+  }
+  renderJobs(data,listEl.id||(listEl.id="jl-"+tabId,listEl.id));
+}
+
+// init
+updateCounts();
+renderJobs(J,"job-list");
+updateStats(J);
+
+document.querySelector(".tab-bar").addEventListener("click",e=>{
+  const tab=e.target.closest(".tab");
+  if(!tab)return;
+  switchTab(tab.dataset.tab);
+});
+</script>
+</body>
+</html>

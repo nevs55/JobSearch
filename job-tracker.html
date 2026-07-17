@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Erik Neville | Job Tracker 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --surface: #12161f;
+    --card: #181d28;
+    --border: #232a38;
+    --accent: #00d4aa;
+    --accent2: #f5a623;
+    --accent3: #e05a5a;
+    --text: #dce3ef;
+    --muted: #7a8499;
+    --tier1: #00d4aa;
+    --tier2: #5b9cf6;
+    --tier3: #a084e8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 32px 20px 60px;
+  }
+
+  header {
+    max-width: 960px;
+    margin: 0 auto 36px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header-left h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #fff;
+  }
+
+  .header-left h1 span { color: var(--accent); }
+
+  .header-left p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-n {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .stat-l {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .filters {
+    max-width: 960px;
+    margin: 0 auto 24px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 500; }
+
+  #job-list {
+    max-width: 960px;
+    margin: 0 auto;
+    display: grid;
+    gap: 12px;
+  }
+
+  .job-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 10px 16px;
+    transition: border-color 0.15s, transform 0.15s;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .job-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .job-main { grid-column: 1; }
+
+  .job-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  .job-company {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .job-right {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .tier-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+  }
+
+  .tier1 { background: rgba(0,212,170,0.15); color: var(--tier1); border: 1px solid rgba(0,212,170,0.3); }
+  .tier2 { background: rgba(91,156,246,0.15); color: var(--tier2); border: 1px solid rgba(91,156,246,0.3); }
+  .tier3 { background: rgba(160,132,232,0.15); color: var(--tier3); border: 1px solid rgba(160,132,232,0.3); }
+
+  .match-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .match-bar {
+    width: 80px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .match-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .job-meta {
+    grid-column: 1 / 3;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.5;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .job-note { flex: 1; min-width: 200px; }
+
+  .job-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: flex-start;
+  }
+
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .tag.remote { color: var(--accent2); border-color: rgba(245,166,35,0.3); }
+  .tag.boston { color: #7ec8e3; border-color: rgba(126,200,227,0.3); }
+
+  .apply-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--accent);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+  }
+
+  .apply-link:hover { opacity: 1; text-decoration: underline; }
+
+  .rank-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.65rem;
+    color: var(--border);
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    align-self: center;
+  }
+
+  .no-results {
+    text-align: center;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    padding: 40px 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>Job <span>Targets</span> 2026</h1>
+    <p>Erik Neville · Senior SA / TAM · Boston / NE / Remote</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-n" id="s-total">20</div><div class="stat-l">Roles</div></div>
+    <div class="stat"><div class="stat-n" id="s-t1">—</div><div class="stat-l">🔥 Strong</div></div>
+    <div class="stat"><div class="stat-n" id="s-boston">—</div><div class="stat-l">NE/Boston</div></div>
+    <div class="stat"><div class="stat-n" id="s-remote">—</div><div class="stat-l">Remote-ok</div></div>
+  </div>
+</header>
+
+<div class="filters">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="vendor">Vendors</button>
+  <button class="filter-btn" data-filter="var">VAR/MSP</button>
+  <button class="filter-btn" data-filter="bcdr">BCDR</button>
+  <button class="filter-btn" data-filter="hci">HCI/Infra</button>
+  <button class="filter-btn" data-filter="storage">Storage</button>
+  <button class="filter-btn" data-filter="boston">Boston/NE</button>
+</div>
+
+<div id="job-list"></div>
+
+<script>
+const jobs = [
+  {
+    rank: 1,
+    title: "Systems Engineer, Commercial – MA",
+    company: "Pure Storage",
+    tier: 1,
+    tags: ["vendor","storage","boston"],
+    remote: true,
+    match: 95,
+    note: "Your FlashArray Architect Associate + hands-on Pure field work is essentially the JD. Pre-sales SE role covering MA commercial accounts. Actively hiring.",
+    url: "https://www.linkedin.com/jobs/view/systems-engineer-commercial-ma-at-pure-storage-2937603588"
+  },
+  {
+    rank: 2,
+    title: "Senior Presales Solution Architect",
+    company: "Blue Mantis (GreenPages)",
+    tier: 1,
+    tags: ["var","boston","bcdr","hci","storage"],
+    remote: true,
+    match: 92,
+    note: "Remote role, NE-based VAR. 30+ years in managed services, cybersecurity, cloud. Your full stack — Nutanix, VMware, Veeam, Rubrik, Pure — is their core partner lineup. Lowest-friction move on the list.",
+    url: "https://builtin.com/job/senior-presales-solution-architect-remote/2552013"
+  },
+  {
+    rank: 3,
+    title: "Solutions Architect, MSP (New Product Intro)",
+    company: "Rubrik",
+    tier: 1,
+    tags: ["vendor","bcdr","var"],
+    remote: true,
+    match: 92,
+    note: "JD reads like your resume: MSP/MSSP background, BCDR depth, DRaaS, VMware, ransomware recovery, whiteboarding. Direct Rubrik vendor role. Strong fit.",
+    url: "https://rubrik.dejobs.org/lansing-mi/solutions-architect-msp-new-product-intro/F45B6EE4727A4214AC7A5D05422BDADE/job/"
+  },
+  {
+    rank: 4,
+    title: "Sr. Systems Sales Engineer – Northeast",
+    company: "Nutanix",
+    tier: 1,
+    tags: ["vendor","hci","boston"],
+    remote: true,
+    match: 90,
+    note: "Pre-sales SE targeting NE territory. Your NCP cert + years of Nutanix field experience are differentiators most candidates can't touch. Active Boston/Eastern US openings found.",
+    url: "https://www.indeed.com/q-Nutanix-l-Boston,-MA-jobs.html"
+  },
+  {
+    rank: 5,
+    title: "Solutions Architect – BCDR / Cyber Resilience",
+    company: "Presidio / ePlus / CDW",
+    tier: 1,
+    tags: ["var","bcdr","boston"],
+    remote: true,
+    match: 90,
+    note: "Multiple NE VARs actively hiring Rubrik/Cohesity/Veeam-aligned SAs. Post-Broadcom VMware disruption is driving demand hard. Your Veeam + Rubrik depth is exactly the ask.",
+    url: "https://www.presidio.com/careers"
+  },
+  {
+    rank: 6,
+    title: "Pre-Sales Solutions Architect",
+    company: "Wasabi Technologies",
+    tier: 1,
+    tags: ["vendor","storage","boston"],
+    remote: true,
+    match: 85,
+    note: "Boston-headquartered cloud storage unicorn ($1.8B). SA role confirmed open (FL-based but remote-friendly). Your Veeam + object storage familiarity fits. Bonus: they're a Bruins partner.",
+    url: "https://builtin.com/company/wasabi-technologies/jobs"
+  },
+  {
+    rank: 7,
+    title: "Senior Network Engineer (Pre-Sales / Solutioning)",
+    company: "Blue Mantis",
+    tier: 1,
+    tags: ["var","boston"],
+    remote: false,
+    match: 82,
+    note: "Boston-area role with pre-sales solutioning component — SOW creation, client-facing architecture, multi-vendor (Cisco, Palo Alto, Fortinet). Secondary fit given your networking breadth.",
+    url: "https://www.tealhq.com/job/senior-network-engineer_7ea1a21a4dd36ef1057a14a5c961ace03d439"
+  },
+  {
+    rank: 8,
+    title: "Systems Sales Engineer (Pre-Sales) – Remote",
+    company: "Nutanix",
+    tier: 2,
+    tags: ["vendor","hci"],
+    remote: true,
+    match: 88,
+    note: "Remote-first Nutanix SE role open nationally. HCI platform focus, trusted advisor motion, same pre-sales playbook you know well. Eastern territory preferred.",
+    url: "https://www.dice.com/jobs/q-nutanix-jobs"
+  },
+  {
+    rank: 9,
+    title: "Sr. Federal Pre-Sales / Systems Engineer",
+    company: "Nutanix",
+    tier: 2,
+    tags: ["vendor","boston","hci"],
+    remote: true,
+    match: 75,
+    note: "Boston-listed Federal SE role. Caveat: may require clearance or prior public sector experience. Worth checking — if no clearance req, your Nutanix certs carry the day.",
+    url: "https://nutanix.dejobs.org/boston/massachusetts/usa/jobs/?vs=1369"
+  },
+  {
+    rank: 10,
+    title: "Systems Engineer (Pre-Sales)",
+    company: "Veeam",
+    tier: 2,
+    tags: ["vendor","bcdr"],
+    remote: true,
+    match: 83,
+    note: "Pre-sales SE role at Veeam. Virtualization + storage + data protection architecture is the core ask. Your Veeam hands-on experience is the differentiator; open to East US coverage.",
+    url: "https://jobs.insightpartners.com/companies/veeam-software/jobs/68994713-systems-engineer"
+  },
+  {
+    rank: 11,
+    title: "Partner Solutions Architect – Rubrik Practice",
+    company: "Cognizant / Presidio (Partner)",
+    tier: 2,
+    tags: ["var","bcdr"],
+    remote: true,
+    match: 82,
+    note: "SI/partner-aligned Rubrik SA role. Backup architecture across hybrid/multi-cloud. Commvault/Veritas/Rubrik stack. Your hands-on BCDR design experience checks all boxes.",
+    url: "https://www.ziprecruiter.com/co/rubrik/Jobs"
+  },
+  {
+    rank: 12,
+    title: "Solutions Architect – VMware/Broadcom Practice",
+    company: "ePlus / CDW / Presidio",
+    tier: 2,
+    tags: ["var","boston","hci"],
+    remote: true,
+    match: 82,
+    note: "VARs are aggressively hiring VMware architects as Broadcom disruption creates massive re-platform demand. Your VCP + Nutanix migration experience is a direct asset right now.",
+    url: "https://www.presidio.com/careers"
+  },
+  {
+    rank: 13,
+    title: "Cloud Portfolio Specialist (HCI / NC2)",
+    company: "Nutanix",
+    tier: 2,
+    tags: ["vendor","hci"],
+    remote: true,
+    match: 78,
+    note: "Specialist overlay role focused on Nutanix Cloud Services, NC2 on AWS/Azure. HCI + hybrid cloud arch background required. AWS gap matters here — worth pursuing if SAA-C03 is in progress.",
+    url: "https://www.ziprecruiter.com/co/Nutanix/Jobs/--in-Massachusetts"
+  },
+  {
+    rank: 14,
+    title: "Technical Account Manager – Infrastructure",
+    company: "Pure Storage / Nutanix",
+    tier: 2,
+    tags: ["vendor","boston"],
+    remote: true,
+    match: 80,
+    note: "Post-sales TAM track at vendors — directly on your target role list. Architecture depth + customer relationship skills are the core ask. Boston/remote both available.",
+    url: "https://careers.purestorage.com"
+  },
+  {
+    rank: 15,
+    title: "Solutions Architect – Boston / NE",
+    company: "Connection (PC Connection)",
+    tier: 2,
+    tags: ["var","boston","hci","storage"],
+    remote: true,
+    match: 80,
+    note: "NH-headquartered VAR with strong Boston/NE presence. Full infrastructure stack — compute, storage, HCI, BCDR. SA roles posted periodically; direct apply recommended.",
+    url: "https://www.connection.com/content/about-us/careers"
+  },
+  {
+    rank: 16,
+    title: "Solutions Architect – Cisco UCS / HCI",
+    company: "ePlus / Presidio",
+    tier: 2,
+    tags: ["var","hci","boston"],
+    remote: true,
+    match: 82,
+    note: "Post-Broadcom HCI shift has NE VARs rebuilding Cisco UCS + alternative HCI benches. Your UCS + Nutanix background covers both sides of the migration conversation.",
+    url: "https://www.eplus.com/careers"
+  },
+  {
+    rank: 17,
+    title: "Solutions Architect – Central US (Remote)",
+    company: "Wasabi Technologies",
+    tier: 2,
+    tags: ["vendor","storage"],
+    remote: true,
+    match: 78,
+    note: "Wasabi SA role open remotely for Central US — likely expandable to East coverage. Pre-sales support, partner integration, S3-compatible storage. Post-sales also available.",
+    url: "https://builtin.com/company/wasabi-technologies/jobs"
+  },
+  {
+    rank: 18,
+    title: "Solutions Architect: Nutanix AI",
+    company: "Nutanix",
+    tier: 3,
+    tags: ["vendor","hci"],
+    remote: true,
+    match: 62,
+    note: "First AI-focused SA hire at Nutanix for Americas. NAI/Enterprise AI GPT focus. Stretch — requires cloud + AI inference background. Your homelab Ollama work is adjacent but not enough alone.",
+    url: "https://www.adzuna.com/details/5635424188"
+  },
+  {
+    rank: 19,
+    title: "Sr. Pre-Sales Systems Engineer – Enterprise",
+    company: "Pure Storage",
+    tier: 3,
+    tags: ["vendor","storage"],
+    remote: true,
+    match: 80,
+    note: "Charlotte/Chicago/LA-posted but frequently has NE openings. Enterprise segment (vs. Commercial). Monitor Pure careers page directly — roles open and close fast in NE.",
+    url: "https://careers.purestorage.com"
+  },
+  {
+    rank: 20,
+    title: "Senior Solutions Engineer – Veeam / Data Resilience",
+    company: "World Wide Technology (WWT)",
+    tier: 2,
+    tags: ["var","bcdr"],
+    remote: true,
+    match: 72,
+    note: "WWT is more central-US focused but roles are often remote-friendly. Strong Veeam/data protection practice. Good fallback if NE pipeline slows.",
+    url: "https://www.wwt.com/careers"
+  }
+];
+
+function getTierLabel(t) {
+  if (t === 1) return { cls: "tier1", text: "🔥 Strong Fit" };
+  if (t === 2) return { cls: "tier2", text: "✦ Good Fit" };
+  return { cls: "tier3", text: "◈ Stretch" };
+}
+
+function countStats(list) {
+  let t1=0, bos=0, rem=0;
+  list.forEach(j => {
+    if(j.tier===1) t1++;
+    if(j.tags.includes("boston")) bos++;
+    if(j.remote) rem++;
+  });
+  return { t1, bos, rem };
+}
+
+function render(filter) {
+  const filtered = filter === "all" ? jobs : jobs.filter(j => j.tags.includes(filter));
+  const { t1, bos, rem } = countStats(filtered);
+  document.getElementById("s-total").textContent = filtered.length;
+  document.getElementById("s-t1").textContent = t1;
+  document.getElementById("s-boston").textContent = bos;
+  document.getElementById("s-remote").textContent = rem;
+
+  const list = document.getElementById("job-list");
+  if (!filtered.length) {
+    list.innerHTML = '<div class="no-results">No roles match this filter.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((j, i) => {
+    const tier = getTierLabel(j.tier);
+    const remTag = j.remote ? `<span class="tag remote">Remote-ok</span>` : "";
+    const bTag = j.tags.includes("boston") ? `<span class="tag boston">NE/Boston</span>` : "";
+    const extraTags = j.tags
+      .filter(t => t !== "boston" && t !== "vendor" && t !== "var")
+      .map(t => `<span class="tag">${t.toUpperCase()}</span>`).join("");
+    const typeTag = j.tags.includes("vendor")
+      ? `<span class="tag">Vendor-Direct</span>`
+      : j.tags.includes("var")
+      ? `<span class="tag">VAR/MSP</span>` : "";
+
+    return `
+    <div class="job-card" style="animation-delay:${i*0.04}s">
+      <div class="job-main">
+        <div class="job-title">#${j.rank} — ${j.title}</div>
+        <div class="job-company">${j.company}</div>
+      </div>
+      <div class="job-right">
+        <span class="tier-badge ${tier.cls}">${tier.text}</span>
+        <div class="match-wrap">
+          <div class="match-bar"><div class="match-fill" style="width:${j.match}%"></div></div>
+          <span>${j.match}%</span>
+        </div>
+      </div>
+      <div class="job-meta">
+        <span class="job-note">${j.note}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div class="job-tags">${typeTag}${bTag}${remTag}${extraTags}</div>
+          <a class="apply-link" href="${j.url}" target="_blank">View / Apply →</a>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+document.querySelector(".filters").addEventListener("click", e => {
+  const btn = e.target.closest(".filter-btn");
+  if (!btn) return;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  render(btn.dataset.filter);
+});
+
+render("all");
+</script>
+</body>
+</html>

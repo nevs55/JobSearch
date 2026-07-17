@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Erik Neville | Job Tracker 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0e13;
+    --surface: #13161f;
+    --card: #181c26;
+    --card-hover: #1e2433;
+    --border: #252c3d;
+    --accent: #00d4aa;
+    --accent2: #f5a623;
+    --text: #d8e0ef;
+    --muted: #6e7a94;
+    --tier1: #00d4aa;
+    --tier2: #5b9cf6;
+    --tier3: #a084e8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 28px 16px 64px;
+  }
+
+  /* HEADER */
+  header {
+    max-width: 980px;
+    margin: 0 auto 28px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .h-left h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #fff;
+  }
+  .h-left h1 em { color: var(--accent); font-style: normal; }
+  .h-left p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-n {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-l {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-top: 2px;
+  }
+
+  /* FILTERS */
+  .filter-bar {
+    max-width: 980px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.64rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-right: 4px;
+  }
+  .fb {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.67rem;
+    padding: 5px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.14s;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .fb:hover { border-color: var(--accent); color: var(--accent); }
+  .fb.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 500; }
+
+  /* JOB LIST */
+  #job-list {
+    max-width: 980px;
+    margin: 0 auto;
+    display: grid;
+    gap: 10px;
+  }
+
+  .jcard {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0;
+    cursor: default;
+    transition: border-color 0.14s, background 0.14s;
+    animation: up 0.25s ease both;
+  }
+  .jcard:hover { border-color: rgba(0,212,170,0.45); background: var(--card-hover); }
+  @keyframes up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  .jmain { grid-column: 1; padding-right: 12px; }
+  .jright { grid-column: 2; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; min-width: 130px; }
+
+  .jtitle {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.97rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+  }
+  .jrank {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-right: 6px;
+  }
+  .jco {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-top: 2px;
+  }
+
+  .tier-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+  }
+  .t1 { background: rgba(0,212,170,0.12); color: var(--tier1); border: 1px solid rgba(0,212,170,0.28); }
+  .t2 { background: rgba(91,156,246,0.12); color: var(--tier2); border: 1px solid rgba(91,156,246,0.28); }
+  .t3 { background: rgba(160,132,232,0.12); color: var(--tier3); border: 1px solid rgba(160,132,232,0.28); }
+
+  .match-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+  .mbar { width: 72px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .mfill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+
+  .jfooter {
+    grid-column: 1 / 3;
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .jnote {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.55;
+    flex: 1;
+    min-width: 180px;
+  }
+  .jactions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+  .jtags { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tag.r { color: #f5c842; border-color: rgba(245,200,66,0.25); }
+  .tag.b { color: #7ecde8; border-color: rgba(126,205,232,0.25); }
+  .alink {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.8;
+    transition: opacity 0.13s;
+  }
+  .alink:hover { opacity: 1; text-decoration: underline; }
+
+  .empty { text-align:center; color:var(--muted); font-family:'DM Mono',monospace; font-size:0.8rem; padding:40px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-left">
+    <h1>Job <em>Targets</em> 2026</h1>
+    <p>Erik Neville · Senior SA / TAM · Boston / NE / Remote · Updated Apr 2026</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-n" id="s-total">30</div><div class="stat-l">Roles</div></div>
+    <div class="stat"><div class="stat-n" id="s-t1">—</div><div class="stat-l">🔥 Strong</div></div>
+    <div class="stat"><div class="stat-n" id="s-ne">—</div><div class="stat-l">NE/Boston</div></div>
+    <div class="stat"><div class="stat-n" id="s-rem">—</div><div class="stat-l">Remote-ok</div></div>
+  </div>
+</header>
+
+<div class="filter-bar">
+  <span class="filter-label">Filter:</span>
+  <button class="fb active" data-f="all">All</button>
+  <button class="fb" data-f="vendor">Vendor-Direct</button>
+  <button class="fb" data-f="var">VAR / MSP</button>
+  <button class="fb" data-f="bcdr">BCDR</button>
+  <button class="fb" data-f="hci">HCI / Infra</button>
+  <button class="fb" data-f="storage">Storage</button>
+  <button class="fb" data-f="boston">NE / Boston</button>
+</div>
+
+<div id="job-list"></div>
+
+<script>
+const jobs = [
+  // ── TIER 1 ─────────────────────────────────────────────────────────────
+  {
+    rank:1, title:"Sr. Pre-Sales Systems Engineer, Enterprise – Boston/RI",
+    co:"Pure Storage", tier:1, tags:["vendor","storage","boston"], remote:true, match:94,
+    note:"Confirmed open Jan 2026 via greenhouse.io (job #7438539). Covers Boston MA, remote CT/RI. JD is your career on paper — storage architecture, RFP responses, customer POCs. Your FlashArray Architect Associate is a direct differentiator.",
+    url:"https://job-boards.greenhouse.io/purestorage/jobs/7438539"
+  },
+  {
+    rank:2, title:"Sr. Pre-Sales Systems Engineer, Commercial – Boston",
+    co:"Pure Storage", tier:1, tags:["vendor","storage","boston"], remote:true, match:92,
+    note:"Separate commercial-segment posting active on ZipRecruiter and Jobright. 5+ yrs pre-sales storage SE. Same JD motion as Enterprise role — two bites at Pure right now in NE.",
+    url:"https://www.ziprecruiter.com/c/Pure-Storage/Job/Senior-Pre-Sales-Systems-Engineer,-Commercial-Boston/-in-Boston,MA?jid=c6b780c0f74aa7d4"
+  },
+  {
+    rank:3, title:"Senior Presales Solution Architect",
+    co:"Blue Mantis (GreenPages)", tier:1, tags:["var","boston","bcdr","hci","storage"], remote:true, match:93,
+    note:"Remote, NE-based MSP. Confirmed active on BuiltIn. 30+ yrs managed services/cybersecurity/cloud. Your full stack — Nutanix, VMware, Veeam, Rubrik, Pure — is their core vendor lineup. Lowest-friction play on this list.",
+    url:"https://builtin.com/job/senior-presales-solution-architect-remote/2552013"
+  },
+  {
+    rank:4, title:"Solutions Architect, MSP – New Product Intro",
+    co:"Rubrik", tier:1, tags:["vendor","bcdr","var"], remote:true, match:93,
+    note:"Active on Rubrik's own careers site. Wants MSP/MSSP background, DRaaS, VMware, ransomware recovery architectures, whiteboarding. Your Rubrik + Veeam + MSP history is almost exactly the JD.",
+    url:"https://www.rubrik.com/company/careers/departments/sales-engineering"
+  },
+  {
+    rank:5, title:"Sr. Systems Sales Engineer – Northeast Territory",
+    co:"Nutanix", tier:1, tags:["vendor","hci","boston"], remote:true, match:91,
+    note:"Active on Indeed Boston/MA. Pre-sales SE trusted-advisor motion. Your NCP cert + years of field Nutanix work is a hard differentiator — most SE candidates can't claim both.",
+    url:"https://www.indeed.com/q-Nutanix-l-Boston,-MA-jobs.html"
+  },
+  {
+    rank:6, title:"Pre-Sales Solutions Architect",
+    co:"Wasabi Technologies", tier:1, tags:["vendor","storage","boston"], remote:true, match:86,
+    note:"Active on BuiltIn. Boston-HQ'd cloud storage unicorn ($1.8B). SA role: pre-sales support, partner cloud storage integration, channel model familiarity. Your Veeam integration + object storage experience fits cleanly.",
+    url:"https://builtin.com/company/wasabi-technologies/jobs"
+  },
+  {
+    rank:7, title:"Solutions Architect – BCDR / Cyber Resilience Practice",
+    co:"Presidio", tier:1, tags:["var","bcdr","boston"], remote:true, match:91,
+    note:"Post-Broadcom VMware disruption is driving VAR re-staffing hard. Presidio NE is actively seeking Rubrik/Veeam/Cohesity-aligned SAs. Your BCDR depth + VAR background is the exact ask.",
+    url:"https://www.presidio.com/careers"
+  },
+  {
+    rank:8, title:"Solutions Architect – Infrastructure / HCI Practice",
+    co:"ePlus Technology", tier:1, tags:["var","hci","boston","bcdr"], remote:true, match:88,
+    note:"ePlus Northeast is hiring infrastructure SAs with Nutanix, Cisco UCS, and VMware experience. Your certifications (NCP, VCP) and VAR background are a direct fit for their pre-sales motion.",
+    url:"https://www.eplus.com/careers"
+  },
+
+  // ── TIER 2 ─────────────────────────────────────────────────────────────
+  {
+    rank:9, title:"Systems Sales Engineer (Pre-Sales) – Remote East",
+    co:"Nutanix", tier:2, tags:["vendor","hci"], remote:true, match:89,
+    note:"Remote-first posting on Dice and Nutanix careers. HCI platform, cloud portfolio focus. Same pre-sales motion you've run for years. Eastern US territory preferred across several open reqs.",
+    url:"https://www.dice.com/jobs/q-nutanix-jobs"
+  },
+  {
+    rank:10, title:"Systems Engineer (Pre-Sales) – East",
+    co:"Veeam", tier:2, tags:["vendor","bcdr"], remote:true, match:84,
+    note:"Active via Insight Partners job board (Mar 2026). Pre-sales SE: virtualization + storage + data protection architecture, channel training, CXO/architect-level presentations. Your Veeam hands-on and channel background is ideal.",
+    url:"https://jobs.insightpartners.com/companies/veeam-software/jobs/68994713-systems-engineer"
+  },
+  {
+    rank:11, title:"Senior Sales Engineer – Northeast",
+    co:"Cohesity", tier:2, tags:["vendor","bcdr"], remote:true, match:85,
+    note:"Active on BuiltIn and Wellfound (17 open roles). SE drives new opps, delivers demos/POCs/workshops, integrates Cohesity into production environments. Your Cohesity + Rubrik cross-knowledge is differentiating.",
+    url:"https://builtin.com/company/cohesity/jobs"
+  },
+  {
+    rank:12, title:"Sales Engineer (Pre-Sales) – National Channel",
+    co:"Commvault", tier:2, tags:["vendor","bcdr"], remote:true, match:82,
+    note:"Active on Commvault careers. Pre-sales SE, orchestrating partner/channel opportunities in the Americas. Your BCDR depth (Veeam, Rubrik, Cohesity) and VAR channel experience translates directly.",
+    url:"https://www.commvault.com/careers/jobs"
+  },
+  {
+    rank:13, title:"Partner Solutions Architect – Rubrik Practice",
+    co:"Cognizant / Presidio (SI Partner)", tier:2, tags:["var","bcdr"], remote:true, match:83,
+    note:"Active on ZipRecruiter. SI-aligned Rubrik SA — backup architecture across hybrid/multi-cloud, Commvault/Veritas/Rubrik stack, pre-sales design and delivery. Your hands-on BCDR design experience is core.",
+    url:"https://www.ziprecruiter.com/co/rubrik/Jobs"
+  },
+  {
+    rank:14, title:"Solutions Architect – VMware / Post-Broadcom Practice",
+    co:"CDW", tier:2, tags:["var","hci","boston"], remote:true, match:83,
+    note:"Broadcom disruption has every major VAR rebuilding VMware SA benches urgently. Your VCP + Nutanix migration experience gives you both sides of the VMware-to-AHV conversation.",
+    url:"https://careers.cdw.com"
+  },
+  {
+    rank:15, title:"Technical Account Manager – Infrastructure",
+    co:"Pure Storage", tier:2, tags:["vendor","storage","boston"], remote:true, match:81,
+    note:"TAM track at Pure — post-sales but architecture-heavy. Directly on your target role list. Boston territory / remote. Your storage design depth + customer relationship skills are the core ask.",
+    url:"https://careers.purestorage.com"
+  },
+  {
+    rank:16, title:"Technical Account Manager – Enterprise",
+    co:"Nutanix", tier:2, tags:["vendor","hci","boston"], remote:true, match:80,
+    note:"TAM at Nutanix: architecture credibility + customer success motion. Your NCP + field delivery background makes you credible at the customer table in a way most TAMs aren't.",
+    url:"https://careers.nutanix.com"
+  },
+  {
+    rank:17, title:"Sr. Federal Pre-Sales / Systems Engineer",
+    co:"Nutanix", tier:2, tags:["vendor","boston","hci"], remote:true, match:74,
+    note:"Boston-listed federal SE. May require clearance or prior public sector exposure — verify before applying. If no clearance req, your Nutanix certs carry the day.",
+    url:"https://nutanix.dejobs.org/boston/massachusetts/usa/jobs/?vs=1369"
+  },
+  {
+    rank:18, title:"Solutions Architect – Boston / NE",
+    co:"Connection (PC Connection)", tier:2, tags:["var","boston","hci","storage"], remote:true, match:80,
+    note:"NH-HQ'd VAR with strong Boston presence. Full infrastructure stack — compute, storage, HCI, BCDR. SA roles posted periodically; check careers page directly and apply proactively.",
+    url:"https://www.connection.com/content/about-us/careers"
+  },
+  {
+    rank:19, title:"Senior Network Engineer – Pre-Sales / Solutioning",
+    co:"Blue Mantis", tier:2, tags:["var","boston"], remote:false, match:78,
+    note:"Boston-area confirmed active (Feb 2026). Has SOW-creation and technical pre-sales solutioning component. Multi-vendor: Cisco, Palo Alto, Fortinet, Aruba. Secondary fit given your networking breadth from VAR days.",
+    url:"https://www.tealhq.com/job/senior-network-engineer_7ea1a21a4dd36ef1057a14a5c961ace03d439"
+  },
+  {
+    rank:20, title:"Solutions Architect – Cisco UCS / HCI",
+    co:"Presidio / ePlus (NE Region)", tier:2, tags:["var","hci","boston"], remote:true, match:82,
+    note:"NE VARs are aggressively rebuilding Cisco UCS SA teams as Broadcom disruption pushes customers to alternative HCI. Your Cisco UCS + Nutanix migration experience covers both sides of the deal.",
+    url:"https://www.presidio.com/careers"
+  },
+  {
+    rank:21, title:"Sr. Solutions Engineer – East (Data Resilience)",
+    co:"World Wide Technology (WWT)", tier:2, tags:["var","bcdr"], remote:true, match:73,
+    note:"WWT has a strong Veeam/Cohesity/Rubrik practice. More central-US focused but roles are remote-eligible. Good fallback option if NE pipeline slows. Check wwt.com/careers directly.",
+    url:"https://www.wwt.com/careers"
+  },
+  {
+    rank:22, title:"Technical Solutions Architect II – Cloud/Linode",
+    co:"Akamai Technologies", tier:2, tags:["vendor","boston"], remote:true, match:70,
+    note:"Active on Akamai careers (job #1633). Boston-HQ company. Pre-sales SA defining Linode/cloud solutions during sales lifecycle, guiding customers through cloud transformation. Stretch but real adjacent opportunity.",
+    url:"https://jobs.akamai.com/en/sites/CX_1/job/1633"
+  },
+  {
+    rank:23, title:"Sr. Product Security Consultant / Pre-Sales SE",
+    co:"Rapid7", tier:2, tags:["vendor","boston"], remote:true, match:68,
+    note:"Rapid7 is Boston-based (57 open roles per Zippia). Their Security Consultant role evaluates IT architecture and communicates security best practices. Your infrastructure + compliance knowledge is relevant; security is the stretch.",
+    url:"https://careers.rapid7.com/jobs/search"
+  },
+  {
+    rank:24, title:"Cloud Portfolio Specialist (HCI / NC2 on AWS)",
+    co:"Nutanix", tier:2, tags:["vendor","hci"], remote:true, match:75,
+    note:"Specialist overlay for Nutanix Cloud Services, NC2 on AWS/Azure. Requires hybrid cloud + AWS depth. Prioritize after SAA-C03 is in hand — your HCI foundation + AWS cert would make you very competitive.",
+    url:"https://careers.nutanix.com"
+  },
+
+  // ── TIER 3 ─────────────────────────────────────────────────────────────
+  {
+    rank:25, title:"Solutions Architect – Central US (Remote)",
+    co:"Wasabi Technologies", tier:3, tags:["vendor","storage"], remote:true, match:74,
+    note:"Active on LinkedIn (Central US, remote). Pre-sales, partner cloud storage integration, S3/object storage expertise. Northeast coverage sometimes folds into this territory. Good backup to the primary Wasabi SA role.",
+    url:"https://builtin.com/company/wasabi-technologies/jobs"
+  },
+  {
+    rank:26, title:"Solutions Architect: Nutanix AI (Americas)",
+    co:"Nutanix", tier:3, tags:["vendor","hci"], remote:true, match:60,
+    note:"First AI-focused SA hire at Nutanix in Americas (NAI / Enterprise AI GPT). Requires cloud + AI inference background. Your homelab Ollama experience is adjacent — return to this after more AI exposure.",
+    url:"https://www.adzuna.com/details/5635424188"
+  },
+  {
+    rank:27, title:"Solutions Architect – SHI International",
+    co:"SHI International", tier:3, tags:["var","hci","storage"], remote:true, match:72,
+    note:"National VAR with wide infrastructure practice — HCI, storage, BCDR, Microsoft. Roles post and fill fast. Less NE-focused than Blue Mantis/Connection/ePlus, but volume of roles keeps it on the list.",
+    url:"https://www.shi.com/careers"
+  },
+  {
+    rank:28, title:"Presales Solutions Architect – Infrastructure",
+    co:"Dell Technologies", tier:3, tags:["vendor","hci","storage"], remote:true, match:68,
+    note:"Dell Boston-area search returns no open senior SA roles right now — their Presales Academy is new-grad focused. Monitor dell.wd1.myworkdayjobs.com for senior field SA postings; they appear periodically.",
+    url:"https://jobs.dell.com/en/location/boston-jobs/375/6252001-6254926-4930956/4"
+  },
+  {
+    rank:29, title:"Solutions Engineer – Enterprise (Northeast)",
+    co:"NetApp", tier:3, tags:["vendor","storage","boston"], remote:true, match:68,
+    note:"NetApp is actively hiring cloud/infra engineers (per Nutanix Boston zippia results showing NetApp adjacency). Their SE org is competitive but your storage SA background is highly relevant. Check careers.netapp.com.",
+    url:"https://careers.netapp.com"
+  },
+  {
+    rank:30, title:"Solutions Architect / SE – Data Protection (VAR-aligned)",
+    co:"Thrive (MSP) / Sirius / CDW",
+    tier:3, tags:["var","bcdr","boston"], remote:true, match:72,
+    note:"Thrive is a Boston-area MSP with growing infra practice. Sirius (now CDW) has NE data protection SA roles. Broad VAR/MSP sweep — worth a pass if top-tier pipeline slows.",
+    url:"https://thrivecloud.com/careers"
+  }
+];
+
+function tierLabel(t) {
+  if(t===1) return {cls:"t1",txt:"🔥 Strong Fit"};
+  if(t===2) return {cls:"t2",txt:"✦ Good Fit"};
+  return {cls:"t3",txt:"◈ Stretch"};
+}
+
+function updateStats(list) {
+  document.getElementById("s-total").textContent = list.length;
+  document.getElementById("s-t1").textContent   = list.filter(j=>j.tier===1).length;
+  document.getElementById("s-ne").textContent   = list.filter(j=>j.tags.includes("boston")).length;
+  document.getElementById("s-rem").textContent  = list.filter(j=>j.remote).length;
+}
+
+function render(filter) {
+  const filtered = filter==="all" ? jobs : jobs.filter(j=>j.tags.includes(filter));
+  updateStats(filtered);
+  const el = document.getElementById("job-list");
+  if(!filtered.length){ el.innerHTML='<div class="empty">No roles match this filter.</div>'; return; }
+
+  el.innerHTML = filtered.map((j,i) => {
+    const tl = tierLabel(j.tier);
+    const ne  = j.tags.includes("boston") ? `<span class="tag b">NE/Boston</span>` : "";
+    const rem = j.remote ? `<span class="tag r">Remote-ok</span>` : "";
+    const typetag = j.tags.includes("vendor")
+      ? `<span class="tag">Vendor-Direct</span>`
+      : `<span class="tag">VAR/MSP</span>`;
+    const extras = j.tags
+      .filter(t=>!["boston","vendor","var"].includes(t))
+      .map(t=>`<span class="tag">${t.toUpperCase()}</span>`).join("");
+
+    return `
+    <div class="jcard" style="animation-delay:${i*0.035}s">
+      <div class="jmain">
+        <div class="jtitle"><span class="jrank">#${j.rank}</span>${j.title}</div>
+        <div class="jco">${j.co}</div>
+      </div>
+      <div class="jright">
+        <span class="tier-badge ${tl.cls}">${tl.txt}</span>
+        <div class="match-row">
+          <div class="mbar"><div class="mfill" style="width:${j.match}%"></div></div>
+          <span>${j.match}%</span>
+        </div>
+      </div>
+      <div class="jfooter">
+        <span class="jnote">${j.note}</span>
+        <div class="jactions">
+          <div class="jtags">${typetag}${ne}${rem}${extras}</div>
+          <a class="alink" href="${j.url}" target="_blank">View / Apply →</a>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+document.querySelector(".filter-bar").addEventListener("click", e => {
+  const btn = e.target.closest(".fb");
+  if(!btn) return;
+  document.querySelectorAll(".fb").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  render(btn.dataset.f);
+});
+
+render("all");
+</script>
+</body>
+</html>
