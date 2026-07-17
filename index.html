@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Erik Neville | Job Tracker 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --bg:#0b0e13;--surface:#13161f;--card:#181c27;--card-hov:#1d2233;
@@ -195,6 +196,7 @@
   </div>
   <button class="search-clear" id="search-clear">✕ Clear</button>
   <button class="add-btn" id="add-job">＋ Add Job</button>
+  <button class="btn-sec" id="sync-btn" title="Sync your data across devices">☁ Sync</button>
 </div>
 
 <div class="body">
@@ -294,6 +296,31 @@
     </div>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="sync-overlay">
+  <div class="modal">
+    <h2>☁ Cloud Sync</h2>
+    <div id="sync-out">
+      <p style="font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:14px">Enter your email and you'll get a sign-in link — no password needed. Sign in on any device and your jobs, statuses, and sources sync everywhere automatically. Your data stays private to your account.</p>
+      <div class="frow"><div class="fcol"><span class="flab">Email</span><input class="fin" id="sync-email" type="email" placeholder="you@example.com" autocomplete="email"></div></div>
+      <p style="font-size:.75rem;min-height:1.2em;margin:4px 0" id="sync-msg"></p>
+      <div class="modal-actions">
+        <button class="btn-sec" id="sync-close-out">Close</button>
+        <button class="add-btn" id="sync-send">Send Sign-In Link</button>
+      </div>
+    </div>
+    <div id="sync-in" style="display:none">
+      <p style="font-size:.82rem;color:var(--text);margin-bottom:6px" id="sync-who"></p>
+      <p style="font-size:.75rem;color:var(--muted);line-height:1.6;margin-bottom:10px">Changes save to the cloud automatically a moment after you make them. “Sync Now” pulls the latest from your other devices.</p>
+      <p style="font-size:.75rem;min-height:1.2em;margin:4px 0" id="sync-msg2"></p>
+      <div class="modal-actions">
+        <button class="btn-sec" id="sync-signout">Sign Out</button>
+        <button class="btn-sec" id="sync-close-in">Close</button>
+        <button class="add-btn" id="sync-now">Sync Now</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="modal-overlay">
@@ -486,7 +513,11 @@ function loadStore(){
   catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[]};}
 }
 let STORE=loadStore();
-function saveStore(){try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}}
+function saveStore(){
+  STORE._ts=Date.now();
+  try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}
+  schedulePush();
+}
 
 function allJobs(){
   const base=J.filter(j=>!STORE.deleted.includes(j.id)).map(j=>Object.assign({},j,STORE.edits[j.id]||{}));
@@ -817,6 +848,100 @@ document.addEventListener("change",e=>{
   updateCounts();
   if(currentTab==="pipeline")switchTab("pipeline");
 });
+
+// ── CLOUD SYNC (Supabase) ────────────────────────────────────────────────
+// The publishable key below is safe to embed: it only grants access allowed
+// by row-level security, which restricts every row to its signed-in owner.
+const SB_URL="https://ifdhlrfvxwufkupdqegy.supabase.co";
+const SB_KEY="sb_publishable_Uxuk0gy0tWkmOE9E9hbIWA_q5DqLuK1";
+let sb=null,sbUser=null,pushTimer=null;
+try{if(typeof supabase!=="undefined")sb=supabase.createClient(SB_URL,SB_KEY);}catch(e){}
+
+const syncBtn=document.getElementById("sync-btn");
+const syncOverlay=document.getElementById("sync-overlay");
+function syncMsg(t,err){
+  const el=document.getElementById(sbUser?"sync-msg2":"sync-msg");
+  el.textContent=t||"";
+  el.style.color=err?"#e05a5a":"var(--accent)";
+}
+function syncLabel(){
+  syncBtn.textContent=sbUser?"☁ Synced":"☁ Sync";
+  syncBtn.style.color=sbUser?"var(--accent)":"";
+  syncBtn.style.borderColor=sbUser?"var(--accent)":"";
+}
+function refreshSyncModal(){
+  document.getElementById("sync-out").style.display=sbUser?"none":"block";
+  document.getElementById("sync-in").style.display=sbUser?"block":"none";
+  if(sbUser)document.getElementById("sync-who").textContent="Signed in as "+sbUser.email;
+}
+async function pushRemote(){
+  if(!sb||!sbUser)return;
+  try{
+    const {error}=await sb.from("tracker_data").upsert({user_id:sbUser.id,data:STORE,updated_at:new Date().toISOString()});
+    if(error)throw error;
+    syncMsg("Saved to cloud at "+new Date().toLocaleTimeString());
+  }catch(e){syncMsg("Cloud save failed: "+(e.message||e),true);}
+}
+function schedulePush(){
+  if(!sb||!sbUser)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushRemote,1200);
+}
+async function pullAndMerge(){
+  if(!sb||!sbUser)return;
+  try{
+    const {data,error}=await sb.from("tracker_data").select("data").maybeSingle();
+    if(error)throw error;
+    const remote=data&&data.data;
+    const rts=(remote&&remote._ts)||0,lts=STORE._ts||0;
+    if(remote&&rts>lts){
+      STORE=Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[]},remote);
+      try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}
+      switchTab(currentTab);
+      syncMsg("Loaded newer data from the cloud.");
+    }else if(lts>rts){
+      await pushRemote();
+    }else{
+      syncMsg("Up to date.");
+    }
+  }catch(e){syncMsg("Cloud load failed: "+(e.message||e),true);}
+}
+
+syncBtn.addEventListener("click",()=>{
+  if(!sb){alert("Cloud sync isn't available in this embedded copy. Open the full site at nevs55.github.io/JobSearch to sync.");return;}
+  refreshSyncModal();
+  syncOverlay.classList.add("open");
+});
+document.getElementById("sync-close-out").addEventListener("click",()=>syncOverlay.classList.remove("open"));
+document.getElementById("sync-close-in").addEventListener("click",()=>syncOverlay.classList.remove("open"));
+syncOverlay.addEventListener("click",e=>{if(e.target===syncOverlay)syncOverlay.classList.remove("open");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")syncOverlay.classList.remove("open");});
+
+document.getElementById("sync-send").addEventListener("click",async()=>{
+  const email=document.getElementById("sync-email").value.trim();
+  if(!email||!email.includes("@")){syncMsg("Enter a valid email address.",true);return;}
+  syncMsg("Sending…");
+  try{
+    const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+    if(error)throw error;
+    syncMsg("Check your email and open the sign-in link on this device.");
+  }catch(e){syncMsg("Couldn't send the link: "+(e.message||e),true);}
+});
+document.getElementById("sync-signout").addEventListener("click",async()=>{
+  try{await sb.auth.signOut();}catch(e){}
+  syncOverlay.classList.remove("open");
+});
+document.getElementById("sync-now").addEventListener("click",pullAndMerge);
+
+if(sb){
+  sb.auth.onAuthStateChange((_evt,session)=>{
+    sbUser=session?session.user:null;
+    syncLabel();
+    refreshSyncModal();
+    if(sbUser)pullAndMerge();
+  });
+}
+syncLabel();
 
 // init
 updateCounts();
