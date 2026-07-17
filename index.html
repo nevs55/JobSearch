@@ -119,6 +119,17 @@
   .btn-sec{font-family:'DM Mono',monospace;font-size:.65rem;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;}
   .btn-sec:hover{border-color:var(--accent);color:var(--accent);}
 
+  /* ── SOURCES ── */
+  .tag.src-ok{color:#7ddf9a;border-color:rgba(125,223,154,.3);}
+  .tag.src-warn{color:#f5a623;border-color:rgba(245,166,35,.4);}
+  .al.verify{color:var(--accent2);}
+  .sec-h{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:#fff;margin:20px 0 10px;}
+  .src-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 14px;}
+  .src-form .fin{flex:1;min-width:150px;}
+  .src-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+  .login-tag{font-family:'DM Mono',monospace;font-size:.52rem;padding:2px 7px;border-radius:10px;background:rgba(91,156,246,.12);color:#5b9cf6;border:1px solid rgba(91,156,246,.25);text-transform:uppercase;letter-spacing:.05em;}
+  .src-card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+
   /* ── PAGE: TRACKER ── */
   .page{display:none;}
   .page.active{display:block;}
@@ -172,6 +183,7 @@
     <button class="tab" data-tab="storage">Storage <span class="cnt" id="tc-storage">—</span></button>
     <button class="tab" data-tab="ne">NE / Boston <span class="cnt" id="tc-ne">—</span></button>
     <button class="tab" data-tab="companies">🏢 Companies</button>
+    <button class="tab" data-tab="sources">🔗 Sources</button>
     <button class="tab" data-tab="tips">💡 Strategy</button>
   </div>
 </div>
@@ -189,7 +201,7 @@
 
   <!-- ALL JOBS / FILTERED VIEWS -->
   <div class="page active" id="page-tracker">
-    <div class="notice">✓ <strong>Remote or Greater Boston only.</strong> All listings sourced from official ATS / career pages Jul 17 2026. Apply links go directly to employer.</div>
+    <div class="notice">✓ <strong>Remote or Greater Boston only.</strong> Base list is a research snapshot from Jul 17 2026 — not a live feed. Listings tagged <strong>⚠ aggregator</strong> came from a job board (LinkedIn / Indeed / BuiltIn) and can go stale after the role closes: always click <strong>Verify on company site</strong> before applying.</div>
     <div class="job-list" id="job-list"></div>
   </div>
 
@@ -206,6 +218,11 @@
   <div class="page" id="page-companies">
     <div class="notice">All companies below have at least one confirmed open pre-sales SA / SE role matching your profile as of Jul 17 2026.</div>
     <div class="company-grid" id="company-grid"></div>
+  </div>
+
+  <!-- SOURCES PAGE -->
+  <div class="page" id="page-sources">
+    <div id="sources-body"></div>
   </div>
 
   <!-- TIPS PAGE -->
@@ -406,12 +423,67 @@ const COMPANIES=[
   {name:"WWT",type:"VAR / National",roles:"SA BCDR/MSP Remote",count:1,url:"https://www.wwt.com/careers"},
 ];
 
+// ── SOURCE CLASSIFICATION ────────────────────────────────────────────────
+// Aggregator boards can keep showing jobs after they close — every job from
+// one of these domains gets a "Verify on company site" link.
+const AGGREGATORS=["builtin.com","builtinboston.com","indeed.com","glassdoor.com","ziprecruiter.com","linkedin.com","dice.com","snagajob.com","jobgether.com","adzuna.com","tealhq.com","wellfound.com","remoterocketship.com","accel.com","insightpartners.com","dejobs.org","lensa.com","monster.com","simplyhired.com"];
+function isAggregator(url){
+  try{const h=new URL(url).hostname;return AGGREGATORS.some(d=>h===d||h.endsWith("."+d));}
+  catch(e){return false;}
+}
+// Company name → official careers page, for the verify link.
+const CAREERS=[
+  ["nutanix","https://careers.nutanix.com/"],
+  ["everpure","https://www.purestorage.com/company/careers/opportunities.html"],
+  ["pure","https://www.purestorage.com/company/careers/opportunities.html"],
+  ["commvault","https://www.commvault.com/careers/jobs"],
+  ["veeam","https://careers.veeam.com/"],
+  ["cohesity","https://www.cohesity.com/company/careers/"],
+  ["rubrik","https://www.rubrik.com/company/careers"],
+  ["dell","https://jobs.dell.com/"],
+  ["zerto","https://careers.hpe.com/"],
+  ["hpe","https://careers.hpe.com/"],
+  ["netapp","https://careers.netapp.com/"],
+  ["wasabi","https://wasabi.com/company/careers"],
+  ["cisco","https://careers.cisco.com/"],
+  ["blue mantis","https://bluemantis.com/about/careers/"],
+  ["presidio","https://www.presidio.com/careers/"],
+  ["eplus","https://www.eplus.com/careers"],
+  ["cdw","https://www.cdwjobs.com/"],
+  ["blackhawk","https://www.blackhawkdata.com/careers"],
+  ["connection","https://www.connection.com/content/about-us/careers"],
+  ["thrive","https://thrivenextgen.com/careers/"],
+  ["egroup","https://www.egroup-us.com/careers/"],
+  ["sentinel","https://www.sentinel.com/careers"],
+  ["wwt","https://www.wwt.com/careers"],
+  ["shi","https://careers.shi.com/"],
+  ["cognizant","https://careers.cognizant.com/"],
+];
+function careersUrl(co){
+  const c=String(co||"").toLowerCase();
+  for(const [k,u] of CAREERS){if(c.includes(k))return u;}
+  return "https://www.google.com/search?q="+encodeURIComponent(co+" careers jobs");
+}
+
+// Free job sources — no paid subscriptions. "Uses your login" means the link
+// opens the site and YOUR browser signs you in; this page never stores passwords.
+const FREE_SOURCES=[
+  {name:"LinkedIn Jobs",url:"https://www.linkedin.com/jobs/",login:true,note:"Free account. Biggest volume — but listings often stay visible after the role closes. Always verify on the company site before applying."},
+  {name:"Indeed",url:"https://www.indeed.com/",login:true,note:"Free. Set alerts for 'Sales Engineer' / 'Solutions Architect' + Boston or Remote. Same staleness caveat as LinkedIn."},
+  {name:"BuiltIn Boston",url:"https://www.builtin.com/jobs?city=Boston&state=Massachusetts",login:false,note:"Free, no login needed to browse. Strong for Boston tech (Wasabi, Rapid7, SHI listings)."},
+  {name:"Google Jobs",url:"https://www.google.com/search?q=solutions+architect+pre-sales+jobs+boston+OR+remote&ibp=htl;jobs",login:false,note:"Free aggregate of everything, including postings straight from company ATS pages."},
+  {name:"Dice",url:"https://www.dice.com/",login:true,note:"Free, infrastructure/tech heavy. Good for Nutanix / VMware / storage SE roles."},
+  {name:"Glassdoor",url:"https://www.glassdoor.com/Job/index.htm",login:true,note:"Free with account. Best used for salary sanity-checks alongside a listing found elsewhere."},
+  {name:"Wellfound",url:"https://wellfound.com/jobs",login:true,note:"Free. Startup-tier roles (Cohesity, Wasabi class companies)."},
+  {name:"RepVue",url:"https://www.repvue.com/",login:true,note:"Free. Sales-org ratings, quota attainment data, and SE openings — useful diligence before interviews."},
+];
+
 // ── PERSISTENCE (localStorage overlay on the base list) ──────────────────
 const LS_KEY="jobTrackerData_v1";
 J.forEach(j=>j.id="b"+j.r);
 function loadStore(){
-  try{return Object.assign({custom:[],edits:{},deleted:[],status:{}},JSON.parse(localStorage.getItem(LS_KEY))||{});}
-  catch(e){return{custom:[],edits:{},deleted:[],status:{}};}
+  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
+  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[]};}
 }
 let STORE=loadStore();
 function saveStore(){try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}}
@@ -442,6 +514,9 @@ function renderJobs(data,containerId){
     const ext=j.tags.filter(x=>!["ne","vendor","var"].includes(x)).map(x=>`<span class="tag">${x.toUpperCase()}</span>`).join("");
     const st=STORE.status[j.id]||"";
     const opts=STATUSES.map(([v,l])=>`<option value="${v}"${v===st?" selected":""}>${l}</option>`).join("");
+    const agg=j.url?isAggregator(j.url):false;
+    const srcTag=j.url?(agg?`<span class="tag src-warn">⚠ aggregator</span>`:`<span class="tag src-ok">✓ official site</span>`):"";
+    const verify=agg?`<a class="al verify" href="${esc(careersUrl(j.co))}" target="_blank">Verify on company site →</a>`:"";
     return `<div class="jc" style="animation-delay:${i*.02}s">
       <div class="jmain">
         <div class="jt"><span class="jrn">#${j.r}</span>${esc(j.t)}</div>
@@ -454,17 +529,68 @@ function renderJobs(data,containerId){
       <div class="jfoot">
         <span class="jnote">${esc(j.note)}<br><span class="src">${esc(j.src)}</span></span>
         <div class="jact">
-          <div class="jtags">${typ}${ne}${rem}${ext}</div>
+          <div class="jtags">${typ}${ne}${rem}${ext}${srcTag}</div>
           <div class="card-controls">
             <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
             <button class="icon-btn" data-act="edit" data-id="${j.id}" title="Edit">✎</button>
             <button class="icon-btn danger" data-act="del" data-id="${j.id}" title="Remove">✕</button>
           </div>
           ${j.url?`<a class="al" href="${esc(j.url)}" target="_blank">Apply →</a>`:""}
+          ${verify}
         </div>
       </div>
     </div>`;
   }).join("");
+}
+
+function renderSources(){
+  const el=document.getElementById("sources-body");
+  const my=STORE.sources.map((s,i)=>`
+    <div class="company-card">
+      <div><span class="cc-count">${s.login?'<span class="login-tag">uses your login</span>':"link"}</span>
+      <div class="cc-name">${esc(s.name)}</div></div>
+      ${s.note?`<div class="cc-roles">${esc(s.note)}</div>`:""}
+      <div class="src-card-foot">
+        <a class="cc-link" href="${esc(s.url)}" target="_blank">Open →</a>
+        <button class="icon-btn danger" data-act="delsrc" data-i="${i}" title="Remove">✕</button>
+      </div>
+    </div>`).join("");
+  const free=FREE_SOURCES.map(s=>`
+    <div class="company-card">
+      <div><span class="cc-count">${s.login?'<span class="login-tag">uses your login</span>':"no login"}</span>
+      <div class="cc-name">${esc(s.name)}</div></div>
+      <div class="cc-roles">${esc(s.note)}</div>
+      <a class="cc-link" href="${esc(s.url)}" target="_blank">Open →</a>
+    </div>`).join("");
+  const co=COMPANIES.map(c=>`
+    <div class="company-card">
+      <div><span class="cc-count">official</span>
+      <div class="cc-name">${esc(c.name)}</div>
+      <div class="cc-type">${esc(c.type)}</div></div>
+      <a class="cc-link" href="${esc(careersUrl(c.name))}" target="_blank">Careers page →</a>
+    </div>`).join("");
+  el.innerHTML=`
+    <div class="notice">ℹ <strong>Where this data comes from:</strong> the 50 base roles are a research snapshot compiled Jul 17 2026 from ATS pages and job boards — this site does not fetch listings live. <strong>⚠ aggregator</strong> jobs were found on boards (LinkedIn / Indeed / BuiltIn) that can show closed roles: always use the Verify link. This site never stores passwords — <strong>“uses your login”</strong> just opens the site where your own browser signs you in.</div>
+    <div class="sec-h">My Sources</div>
+    <div class="src-form">
+      <input class="fin" id="s-name" type="text" placeholder="Name (e.g. My LinkedIn saved jobs)">
+      <input class="fin" id="s-url" type="url" placeholder="https://…">
+      <input class="fin" id="s-note" type="text" placeholder="Note (optional)">
+      <label class="fchk"><input type="checkbox" id="s-login" checked> Login site</label>
+      <button class="add-btn" data-act="addsrc">＋ Add</button>
+    </div>
+    <div class="src-list">${my||'<div class="empty">No personal sources yet — add your LinkedIn saved-jobs page, Indeed alert links, recruiter portals…</div>'}</div>
+    <div class="sec-h">Free Job Boards</div>
+    <div class="src-list">${free}</div>
+    <div class="sec-h">Company Careers Pages — always the ground truth</div>
+    <div class="src-list">${co}</div>
+    <div class="sec-h">Backup &amp; Move Between Devices</div>
+    <div class="notice">Your added jobs, edits, statuses, and sources are saved in this browser only. Export a backup file to keep a copy or move everything to another device, then import it there.</div>
+    <div class="src-form">
+      <button class="add-btn" data-act="exportdata">⬇ Export Backup</button>
+      <button class="btn-sec" data-act="importdata">⬆ Import Backup</button>
+      <input type="file" id="import-file" accept="application/json,.json" style="display:none">
+    </div>`;
 }
 
 let currentTab="tracker";
@@ -532,7 +658,9 @@ function switchTab(tabId){
   pageEl.classList.add("active");
 
   const ALL=allJobs();
+  updateCounts();
   if(tabId==="companies"){renderCompanies();updateStats(ALL.filter(matchesSearch));return;}
+  if(tabId==="sources"){renderSources();updateStats(ALL);return;}
   if(tabId==="tips"){updateStats(ALL);return;}
 
   const filter=FILTER_MAP[tabId];
@@ -619,6 +747,34 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay.classList.c
 document.addEventListener("click",e=>{
   const btn=e.target.closest("[data-act]");
   if(!btn)return;
+  if(btn.dataset.act==="addsrc"){
+    const name=document.getElementById("s-name").value.trim();
+    let url=document.getElementById("s-url").value.trim();
+    if(!name||!url){alert("Source name and URL are required.");return;}
+    if(!/^https?:\/\//i.test(url))url="https://"+url;
+    STORE.sources.push({name,url,note:document.getElementById("s-note").value.trim(),login:document.getElementById("s-login").checked});
+    saveStore();
+    renderSources();
+    return;
+  }
+  if(btn.dataset.act==="delsrc"){
+    STORE.sources.splice(parseInt(btn.dataset.i,10),1);
+    saveStore();
+    renderSources();
+    return;
+  }
+  if(btn.dataset.act==="exportdata"){
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(STORE,null,2)],{type:"application/json"}));
+    a.download="job-tracker-backup.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    return;
+  }
+  if(btn.dataset.act==="importdata"){
+    document.getElementById("import-file").click();
+    return;
+  }
   const id=btn.dataset.id;
   const job=allJobs().find(j=>j.id===id);
   if(!job)return;
@@ -633,6 +789,24 @@ document.addEventListener("click",e=>{
 });
 
 document.addEventListener("change",e=>{
+  if(e.target.id==="import-file"){
+    const f=e.target.files[0];
+    if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const d=JSON.parse(r.result);
+        if(typeof d!=="object"||d===null)throw new Error("bad");
+        STORE=Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[]},d);
+        saveStore();
+        switchTab(currentTab);
+        alert("Backup imported — your jobs, statuses, and sources are restored.");
+      }catch(err){alert("That file isn't a valid tracker backup (expected the exported .json file).");}
+    };
+    r.readAsText(f);
+    e.target.value="";
+    return;
+  }
   const sel=e.target.closest(".status-sel");
   if(!sel)return;
   const id=sel.dataset.id;
@@ -660,7 +834,7 @@ const searchClear=document.getElementById("search-clear");
 searchInput.addEventListener("input",()=>{
   query=searchInput.value.trim().toLowerCase();
   searchClear.classList.toggle("show",query.length>0);
-  if(currentTab==="tips"&&query){switchTab("tracker");return;}
+  if((currentTab==="tips"||currentTab==="sources")&&query){switchTab("tracker");return;}
   switchTab(currentTab);
 });
 searchClear.addEventListener("click",()=>{
