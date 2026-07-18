@@ -215,6 +215,7 @@
   <button class="add-btn" id="add-job">＋ Add Job</button>
   <button class="btn-sec" id="sync-btn" title="Sync your data across devices">☁ Sync</button>
   <button class="btn-sec" id="research-btn" title="Run an on-demand AI research sweep for new jobs">🧠 Research</button>
+  <button class="btn-sec" id="profile-btn" title="Upload your resume to update the AI research criteria">📄 Profile</button>
 </div>
 
 <div class="body">
@@ -321,6 +322,29 @@
   <div class="modal" id="detail-body"></div>
 </div>
 
+<div class="modal-overlay" id="profile-overlay">
+  <div class="modal">
+    <h2>📄 Search Profile &amp; Resume</h2>
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:10px">The AI research runs read their search criteria from your profile. Upload your resume (PDF or text) and every future sweep — scheduled or 🧠 button — targets jobs matched to it.</p>
+    <div class="flab" style="margin-bottom:4px">CURRENT PROFILE</div>
+    <pre id="profile-current" style="font-size:.72rem;color:var(--muted);line-height:1.55;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;max-height:160px;overflow-y:auto;white-space:pre-wrap;margin-bottom:14px">Loading…</pre>
+    <div class="frow">
+      <div class="fcol">
+        <span class="flab">Upload Resume (.pdf / .txt / .md)</span>
+        <input class="fin" id="profile-file" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf">
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><span class="flab">Resume Text (extracted — review &amp; edit, or paste directly)</span><textarea class="fin" id="profile-text" style="min-height:130px" placeholder="Upload a file above, or paste your resume text here…"></textarea></div>
+    </div>
+    <p style="font-size:.74rem;min-height:1.2em;margin:4px 0" id="profile-status"></p>
+    <div class="modal-actions">
+      <button class="btn-sec" id="profile-cancel">Cancel</button>
+      <button class="add-btn" id="profile-save">Save Profile</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="gh-overlay">
   <div class="modal">
     <h2>🧠 One-Time Research Button Setup</h2>
@@ -329,7 +353,7 @@
       <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--accent)">Open GitHub's new-token page →</a></li>
       <li>Token name: <strong>job-tracker-button</strong> · Expiration: 90 days or more</li>
       <li>Repository access: <strong>Only select repositories</strong> → <strong>nevs55/JobSearch</strong></li>
-      <li>Permissions → Repository permissions → <strong>Actions: Read and write</strong></li>
+      <li>Permissions → Repository permissions → <strong>Actions: Read and write</strong> and <strong>Contents: Read and write</strong></li>
       <li>Click Generate token, copy it (<span style="font-family:'JetBrains Mono',monospace">github_pat_…</span>), paste below</li>
     </ol>
     <div class="frow"><div class="fcol"><span class="flab">GitHub Token</span><input class="fin" id="gh-token" type="password" placeholder="github_pat_…" autocomplete="off"></div></div>
@@ -1197,6 +1221,100 @@ document.getElementById("gh-save").addEventListener("click",()=>{
   startResearch();
 });
 setResearchState("idle");
+
+// ── RESUME / PROFILE UPLOAD ──────────────────────────────────────────────
+const profileOverlay=document.getElementById("profile-overlay");
+function pStatus(t,err){const el=document.getElementById("profile-status");el.textContent=t||"";el.style.color=err?"#e05a5a":"var(--accent)";}
+function loadPdfJs(){
+  return new Promise((res,rej)=>{
+    if(window.pdfjsLib)return res();
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+    s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";res();};
+    s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+document.getElementById("profile-btn").addEventListener("click",async()=>{
+  profileOverlay.classList.add("open");
+  pStatus("");
+  const cur=document.getElementById("profile-current");
+  cur.textContent="Loading…";
+  try{
+    const r=await fetch("profile.md?t="+Date.now());
+    cur.textContent=r.ok?await r.text():"profile.md not found on the site yet.";
+  }catch(e){cur.textContent="Couldn't load the current profile in this copy of the site.";}
+});
+document.getElementById("profile-cancel").addEventListener("click",()=>profileOverlay.classList.remove("open"));
+profileOverlay.addEventListener("click",e=>{if(e.target===profileOverlay)profileOverlay.classList.remove("open");});
+
+document.getElementById("profile-file").addEventListener("change",async e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  try{
+    let text;
+    if(f.name.toLowerCase().endsWith(".pdf")){
+      pStatus("Extracting text from PDF…");
+      await loadPdfJs();
+      const buf=await f.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      const out=[];
+      for(let p=1;p<=pdf.numPages;p++){
+        const pg=await pdf.getPage(p);
+        const tc=await pg.getTextContent();
+        out.push(tc.items.map(i=>i.str).join(" "));
+      }
+      text=out.join("\n\n");
+    }else{
+      text=await f.text();
+    }
+    if(!text.trim())throw new Error("empty");
+    document.getElementById("profile-text").value=text.trim();
+    pStatus("Text extracted — review it below, then Save Profile.");
+  }catch(err){
+    pStatus("Couldn't read that file — if it's a Word doc or scanned PDF, paste the text into the box instead.",true);
+  }
+  e.target.value="";
+});
+
+function b64utf8(s){
+  const bytes=new TextEncoder().encode(s);
+  let bin="";
+  bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin);
+}
+
+document.getElementById("profile-save").addEventListener("click",async()=>{
+  const tok=localStorage.getItem(GH_KEY);
+  if(!tok){profileOverlay.classList.remove("open");ghOverlay.classList.add("open");return;}
+  const resume=document.getElementById("profile-text").value.trim();
+  if(!resume){pStatus("Upload a file or paste your resume text first.",true);return;}
+  const today=new Date().toISOString().slice(0,10);
+  const content=`# Search Profile — Erik Neville\n\nUpdated: ${today} (resume uploaded from the tracker site)\n\n## Instructions to the research agent\n\nDerive the target roles, seniority, locations, and focus areas primarily from the resume below. Keep the preference for Remote-US or Greater Boston / New England unless the resume states otherwise. Prefer strong fits (tier 1); include good adjacent fits (tier 2) and worthwhile stretches (tier 3).\n\n## Resume\n\n${resume}\n`;
+  pStatus("Saving to GitHub…");
+  try{
+    const hdrs={Authorization:"Bearer "+tok,Accept:"application/vnd.github+json","Content-Type":"application/json"};
+    let sha=null;
+    const g=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/profile.md?ref=main`,{headers:hdrs});
+    if(g.status===200)sha=(await g.json()).sha;
+    const body={message:"Update search profile / resume from tracker site",content:b64utf8(content),branch:"main"};
+    if(sha)body.sha=sha;
+    const r=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/profile.md`,{method:"PUT",headers:hdrs,body:JSON.stringify(body)});
+    if(r.ok){
+      pStatus("Profile saved ✓ — future research runs will use your resume.");
+      if(confirm("Profile saved! Run a research sweep right now with your new criteria?")){
+        profileOverlay.classList.remove("open");
+        startResearch();
+      }
+    }else if(r.status===403||r.status===404){
+      pStatus("Your GitHub token can't write files. Edit it on GitHub (Settings → Developer settings → Fine-grained tokens) and add Contents: Read and write, then Save again.",true);
+    }else{
+      pStatus("GitHub error HTTP "+r.status+" — try again in a minute.",true);
+    }
+  }catch(e){
+    pStatus("Couldn't reach GitHub from this page — use the full site at nevs55.github.io/JobSearch.",true);
+  }
+});
 
 // init
 updateCounts();
