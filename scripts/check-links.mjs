@@ -21,12 +21,25 @@ function curl(url) {
 }
 
 const AGG = ["builtin.com","indeed.com","glassdoor.com","ziprecruiter.com","linkedin.com","dice.com","snagajob.com","jobgether.com","adzuna.com","tealhq.com","wellfound.com","remoterocketship.com","accel.com","insightpartners.com","dejobs.org"];
+
+// Human-confirmed verdicts for URLs the checker cannot see (bot-blocked sites
+// that 403 automated requests but 404 in a real browser). Keyed by URL
+// substring. These always win over the automated check.
+const MANUAL_OVERRIDES = [
+  ["careers.nutanix.com/en/jobs/n2317", "dead"], // user got 404 in browser, Jul 18 2026
+];
 const DEAD_MARKERS = ["no longer accepting","job not found","position is no longer","not accepting applications","this job is no longer","position has been filled","posting is no longer","job has closed","job posting you are looking","page not found","couldn't find that job","job expired","this job has expired"];
 
 const status = { checked: new Date().toISOString().slice(0, 10), jobs: {} };
 
 for (const j of jobs) {
   let verdict = "unknown";
+  const override = MANUAL_OVERRIDES.find(([frag]) => j.url.includes(frag));
+  if (override) {
+    status.jobs[j.r] = override[1];
+    console.log(`#${j.r} ${override[1]} (manual override) ${j.url}`);
+    continue;
+  }
   try {
     const u = new URL(j.url);
     const gh = u.hostname === "job-boards.greenhouse.io" && u.pathname.match(/^\/([^/]+)\/jobs\/(\d+)/);
