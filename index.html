@@ -876,9 +876,17 @@ function syncMsg(t,err){
   el.style.color=err?"#e05a5a":"var(--accent)";
 }
 function syncLabel(){
-  syncBtn.textContent=sbUser?"☁ Synced":"☁ Sync";
-  syncBtn.style.color=sbUser?"var(--accent)":"";
-  syncBtn.style.borderColor=sbUser?"var(--accent)":"";
+  if(sbUser){
+    syncBtn.textContent="☁ "+sbUser.email;
+    syncBtn.title="Cloud sync is on — linked to "+sbUser.email;
+    syncBtn.style.color="var(--accent)";
+    syncBtn.style.borderColor="var(--accent)";
+  }else{
+    syncBtn.textContent="☁ Sync";
+    syncBtn.title="Sync your data across devices";
+    syncBtn.style.color="";
+    syncBtn.style.borderColor="";
+  }
 }
 function refreshSyncModal(){
   document.getElementById("sync-out").style.display=sbUser?"none":"block";
