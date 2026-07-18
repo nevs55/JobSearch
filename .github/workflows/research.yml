@@ -1,0 +1,53 @@
+name: Run job research
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a Claude credential
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: |
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "::error::To enable on-demand research, add ONE repository secret in Settings > Secrets and variables > Actions: ANTHROPIC_API_KEY (from console.anthropic.com) or CLAUDE_CODE_OAUTH_TOKEN (run 'claude setup-token' on a machine with Claude Code installed)."
+            exit 1
+          fi
+
+      - name: Research new jobs with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: "--allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch"
+          prompt: |
+            You are updating Erik Neville's job tracker in this repository checkout. index.html holds the job list in the `J` array (one object per line: r, t, co, tier, tags, remote, m, note, url, src, optional added) and a `COMPANIES` array of tracked companies.
+
+            Research CURRENT job openings across the whole market — the tracked companies are a starting point, not a limit. Use web search and fetch career pages / ATS boards directly (Greenhouse boards API https://boards-api.greenhouse.io/v1/boards/{board}/jobs is definitive). Target: Senior Solutions Architect / Pre-Sales SE / TAM roles, Remote-US or Greater Boston / New England, in BCDR, HCI, enterprise storage, virtualization, hybrid cloud, or datacenter infrastructure, at vendors or VARs/MSPs. Candidate: 20+ yrs multi-vendor infrastructure (Nutanix, VMware, Veeam, Rubrik, Cohesity, Pure, Dell, Cisco UCS), NCP/VCP/Pure certs, VAR pre-sales background.
+
+            For each genuinely new role (not already in J by URL or title+company): append one single-line object to J with the next unused r number, tier 1-3 by fit, tags (vendor|var + bcdr/hci/storage/ne), remote flag, m match %, evidence-based note with comp if listed, url to the OFFICIAL posting (verify on the company site before adding board finds), src describing verification with today's date, and added:"YYYY-MM-DD" (today). Add untracked companies to COMPANIES too. Do not delete existing jobs.
+
+            Then run: node scripts/check-links.mjs
+
+            Finally commit everything with a clear message and push to origin main. Keep the diff minimal; never reformat unrelated code.
+
+      - name: Publish to gh-pages
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git push origin origin/main:gh-pages --force
