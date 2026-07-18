@@ -206,7 +206,7 @@
   <button class="search-clear" id="search-clear">✕ Clear</button>
   <button class="add-btn" id="add-job">＋ Add Job</button>
   <button class="btn-sec" id="sync-btn" title="Sync your data across devices">☁ Sync</button>
-  <a class="btn-sec" href="https://github.com/nevs55/JobSearch/actions/workflows/research.yml" target="_blank" title="Run an on-demand AI research sweep for new jobs (click Run workflow on the next page)">🧠 Research</a>
+  <button class="btn-sec" id="research-btn" title="Run an on-demand AI research sweep for new jobs">🧠 Research</button>
 </div>
 
 <div class="body">
@@ -307,6 +307,26 @@
     </div>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="gh-overlay">
+  <div class="modal">
+    <h2>🧠 One-Time Research Button Setup</h2>
+    <p style="font-size:.82rem;color:var(--muted);line-height:1.65;margin-bottom:12px">To let this button start an AI research run with one click, it needs a GitHub token that proves it's you (otherwise anyone visiting this page could burn your Claude usage). Takes 2 minutes, once:</p>
+    <ol style="font-size:.8rem;color:var(--text);line-height:1.8;padding-left:20px;margin-bottom:12px">
+      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--accent)">Open GitHub's new-token page →</a></li>
+      <li>Token name: <strong>job-tracker-button</strong> · Expiration: 90 days or more</li>
+      <li>Repository access: <strong>Only select repositories</strong> → <strong>nevs55/JobSearch</strong></li>
+      <li>Permissions → Repository permissions → <strong>Actions: Read and write</strong></li>
+      <li>Click Generate token, copy it (<span style="font-family:'JetBrains Mono',monospace">github_pat_…</span>), paste below</li>
+    </ol>
+    <div class="frow"><div class="fcol"><span class="flab">GitHub Token</span><input class="fin" id="gh-token" type="password" placeholder="github_pat_…" autocomplete="off"></div></div>
+    <p style="font-size:.72rem;color:var(--muted);line-height:1.6;margin:6px 0">Stored only in this browser — never in the site code, never in your cloud sync or backups. Repeat this once per device you use the button from.</p>
+    <div class="modal-actions">
+      <button class="btn-sec" id="gh-cancel">Cancel</button>
+      <button class="add-btn" id="gh-save">Save &amp; Start Research</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="sync-overlay">
@@ -1031,6 +1051,86 @@ if(sb){
   });
 }
 syncLabel();
+
+// ── ONE-CLICK RESEARCH (GitHub workflow dispatch) ────────────────────────
+// The token lives ONLY in this browser's localStorage — deliberately kept
+// out of STORE so it never syncs to the cloud or lands in backup exports.
+const GH_KEY="ghDispatchToken";
+const GH_REPO="nevs55/JobSearch";
+const researchBtn=document.getElementById("research-btn");
+const ghOverlay=document.getElementById("gh-overlay");
+let researchPoll=null;
+
+function setResearchState(state){
+  const map={
+    idle:["🧠 Research","Run an on-demand AI research sweep for new jobs"],
+    starting:["🧠 Starting…","Contacting GitHub…"],
+    running:["🧠 Researching…","Claude is sweeping for new jobs — takes ~15-25 min. Safe to leave this page."],
+    done:["✅ Done — click to reload","Research finished. Click to reload and see new jobs."]
+  };
+  researchBtn.textContent=map[state][0];
+  researchBtn.title=map[state][1];
+  researchBtn.dataset.state=state;
+  researchBtn.style.color=state==="done"?"var(--accent)":state==="running"?"var(--accent2)":"";
+  researchBtn.style.borderColor=researchBtn.style.color;
+}
+
+async function startResearch(){
+  const tok=localStorage.getItem(GH_KEY);
+  if(!tok){ghOverlay.classList.add("open");document.getElementById("gh-token").focus();return;}
+  setResearchState("starting");
+  try{
+    const r=await fetch(`https://api.github.com/repos/${GH_REPO}/actions/workflows/research.yml/dispatches`,{
+      method:"POST",
+      headers:{Authorization:"Bearer "+tok,Accept:"application/vnd.github+json","Content-Type":"application/json"},
+      body:JSON.stringify({ref:"main"})
+    });
+    if(r.status===204){
+      setResearchState("running");
+      const startedAt=Date.now();
+      clearInterval(researchPoll);
+      researchPoll=setInterval(async()=>{
+        try{
+          const res=await fetch(`https://api.github.com/repos/${GH_REPO}/actions/workflows/research.yml/runs?per_page=1`,{headers:{Accept:"application/vnd.github+json"}});
+          const d=await res.json();
+          const run=d.workflow_runs&&d.workflow_runs[0];
+          if(run&&new Date(run.created_at).getTime()>startedAt-120000&&run.status==="completed"){
+            clearInterval(researchPoll);
+            setResearchState("done");
+          }
+        }catch(e){}
+      },20000);
+    }else if(r.status===401||r.status===403){
+      localStorage.removeItem(GH_KEY);
+      setResearchState("idle");
+      alert("GitHub rejected the saved token (expired or wrong permissions). Let's set up a fresh one.");
+      ghOverlay.classList.add("open");
+    }else{
+      setResearchState("idle");
+      alert("Couldn't start research (GitHub returned HTTP "+r.status+"). Try again in a minute.");
+    }
+  }catch(e){
+    setResearchState("idle");
+    alert("Couldn't reach GitHub from this page. If you're viewing the embedded copy, use the full site at nevs55.github.io/JobSearch.");
+  }
+}
+
+researchBtn.addEventListener("click",()=>{
+  const s=researchBtn.dataset.state||"idle";
+  if(s==="done"){location.reload();return;}
+  if(s==="idle")startResearch();
+});
+document.getElementById("gh-cancel").addEventListener("click",()=>ghOverlay.classList.remove("open"));
+ghOverlay.addEventListener("click",e=>{if(e.target===ghOverlay)ghOverlay.classList.remove("open");});
+document.getElementById("gh-save").addEventListener("click",()=>{
+  const tok=document.getElementById("gh-token").value.trim();
+  if(!tok){alert("Paste the token first.");return;}
+  localStorage.setItem(GH_KEY,tok);
+  document.getElementById("gh-token").value="";
+  ghOverlay.classList.remove("open");
+  startResearch();
+});
+setResearchState("idle");
 
 // init
 updateCounts();
