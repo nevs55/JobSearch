@@ -130,6 +130,14 @@
   .tag.link-live{color:#7ddf9a;border-color:rgba(125,223,154,.35);}
   .tag.link-dead{color:#e05a5a;border-color:rgba(224,90,90,.45);font-weight:500;}
   .tag.new{background:rgba(0,212,170,.16);color:var(--accent);border-color:rgba(0,212,170,.45);font-weight:500;}
+
+  /* ── JOB DETAIL POPUP ── */
+  .jc{cursor:pointer;}
+  .d-note{font-size:.85rem;color:var(--text);line-height:1.65;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:12px 0;}
+  .d-rows{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;margin-bottom:14px;}
+  .d-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding-top:3px;white-space:nowrap;}
+  .d-val{font-size:.82rem;color:var(--text);line-height:1.5;}
+  a.add-btn{text-decoration:none;display:inline-block;}
   a.tag{text-decoration:none;cursor:pointer;}
   a.tag:hover{text-decoration:underline;}
   .sec-h{font-family:'Archivo',sans-serif;font-size:1rem;font-weight:700;color:#fff;margin:20px 0 10px;}
@@ -307,6 +315,10 @@
     </div>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="detail-overlay">
+  <div class="modal" id="detail-body"></div>
 </div>
 
 <div class="modal-overlay" id="gh-overlay">
@@ -600,7 +612,7 @@ function renderJobs(data,containerId){
       :stat==="live"?`<span class="tag link-live">link ✓ ${LINKSTAT.checked}</span>`:"";
     const verify=(agg||stat==="dead")?`<a class="al verify" href="${esc(careersUrl(j.co))}" target="_blank">${stat==="dead"?"Find current openings →":"Verify on company site →"}</a>`:"";
     const contact=(j.contact||j.cemail)?`<span class="contact-line">👤 ${esc(j.contact||"Contact")}${j.cemail?` · <a href="mailto:${esc(j.cemail)}">${esc(j.cemail)}</a>`:""}</span>`:"";
-    return `<div class="jc" style="animation-delay:${i*.02}s">
+    return `<div class="jc" data-id="${j.id}" style="animation-delay:${i*.02}s">
       <div class="jmain">
         <div class="jt"><span class="jrn">#${j.r}</span>${esc(j.t)}</div>
         <div class="jco">${esc(j.co)}</div>
@@ -801,6 +813,55 @@ function switchTab(tabId){
   renderJobs(data,listEl.id||(listEl.id="jl-"+tabId,listEl.id));
 }
 
+// ── JOB DETAIL POPUP ─────────────────────────────────────────────────────
+const detailOverlay=document.getElementById("detail-overlay");
+function closeDetail(){
+  if(!detailOverlay.classList.contains("open"))return;
+  detailOverlay.classList.remove("open");
+  switchTab(currentTab); // re-sync list in case status changed inside the popup
+}
+function openDetail(id){
+  const j=allJobs().find(x=>x.id===id);
+  if(!j)return;
+  const t=tl(j.tier);
+  const st=STORE.status[j.id]||"";
+  const opts=STATUSES.map(([v,l])=>`<option value="${v}"${v===st?" selected":""}>${l}</option>`).join("");
+  const stat=(LINKSTAT&&j.id[0]==="b")?LINKSTAT.jobs[j.r]:null;
+  const agg=j.url?isAggregator(j.url):false;
+  const linkTxt=stat==="live"?`✓ Confirmed live — checked ${LINKSTAT.checked}`
+    :stat==="dead"?`✗ Link dead — checked ${LINKSTAT.checked}`
+    :agg?"⚠ Aggregator link — verify on the company site before applying"
+    :j.url?"Official site link (not machine-verifiable)":"No link saved";
+  const focus=j.tags.filter(x=>!["vendor","var","ne"].includes(x)).map(x=>x.toUpperCase()).join(", ")||"—";
+  document.getElementById("detail-body").innerHTML=`
+    <h2 style="margin-bottom:2px">${esc(j.t)}</h2>
+    <div class="jco" style="margin-bottom:12px">#${j.r} · ${esc(j.co)}${isArch(j.id)?' · <span style="color:var(--muted)">ARCHIVED</span>':""}</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="badge ${t.cls}">${t.txt}</span>
+      <div class="mrow"><div class="mbar"><div class="mfill" style="width:${j.m}%"></div></div><span>${j.m}% match</span></div>
+      <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
+    </div>
+    <div class="d-note">${esc(j.note)}</div>
+    <div class="d-rows">
+      <span class="d-label">Type</span><span class="d-val">${j.tags.includes("vendor")?"Vendor-direct":"VAR / MSP"}</span>
+      <span class="d-label">Focus</span><span class="d-val">${esc(focus)}</span>
+      <span class="d-label">Location</span><span class="d-val">${j.remote?"Remote-friendly":"On-site"}${j.tags.includes("ne")?" · NE / Boston":""}</span>
+      <span class="d-label">Link check</span><span class="d-val">${linkTxt}</span>
+      ${j.added?`<span class="d-label">Added</span><span class="d-val">${esc(j.added)}</span>`:""}
+      ${(j.contact||j.cemail)?`<span class="d-label">Contact</span><span class="d-val">${esc(j.contact||"")}${j.cemail?` · <a href="mailto:${esc(j.cemail)}" style="color:#7ecde8">${esc(j.cemail)}</a>`:""}</span>`:""}
+      ${j.src?`<span class="d-label">Source</span><span class="d-val" style="color:var(--muted);font-size:.74rem">${esc(j.src)}</span>`:""}
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" id="detail-close">Close</button>
+      <button class="btn-sec" data-act="edit" data-id="${j.id}">✎ Edit</button>
+      ${j.url&&(agg||stat==="dead")?`<a class="btn-sec" href="${esc(careersUrl(j.co))}" target="_blank" style="color:var(--accent2)">Verify on company site</a>`:""}
+      ${j.url?`<a class="add-btn" href="${esc(j.url)}" target="_blank">Full Description / Apply →</a>`:""}
+    </div>`;
+  detailOverlay.classList.add("open");
+}
+detailOverlay.addEventListener("click",e=>{if(e.target===detailOverlay)closeDetail();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDetail();});
+
 // ── ADD / EDIT / DELETE / STATUS ─────────────────────────────────────────
 let editingId=null;
 const overlay=document.getElementById("modal-overlay");
@@ -866,8 +927,13 @@ overlay.addEventListener("click",e=>{if(e.target===overlay)closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay.classList.contains("open"))closeModal();});
 
 document.addEventListener("click",e=>{
+  if(e.target.id==="detail-close"){closeDetail();return;}
   const btn=e.target.closest("[data-act]");
-  if(!btn)return;
+  if(!btn){
+    const card=e.target.closest(".jc");
+    if(card&&card.dataset.id&&!e.target.closest("a,button,select"))openDetail(card.dataset.id);
+    return;
+  }
   if(btn.dataset.act==="addsrc"){
     const name=document.getElementById("s-name").value.trim();
     let url=document.getElementById("s-url").value.trim();
@@ -899,7 +965,7 @@ document.addEventListener("click",e=>{
   const id=btn.dataset.id;
   const job=allJobs().find(j=>j.id===id);
   if(!job)return;
-  if(btn.dataset.act==="edit")openModal(job);
+  if(btn.dataset.act==="edit"){detailOverlay.classList.remove("open");openModal(job);}
   else if(btn.dataset.act==="arch"){
     STORE.archived.push(id);
     saveStore();
