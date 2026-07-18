@@ -128,6 +128,9 @@
   .contact-line a{color:#7ecde8;}
   .tag.link-live{color:#7ddf9a;border-color:rgba(125,223,154,.35);}
   .tag.link-dead{color:#e05a5a;border-color:rgba(224,90,90,.45);font-weight:500;}
+  .tag.new{background:rgba(0,212,170,.16);color:var(--accent);border-color:rgba(0,212,170,.45);font-weight:500;}
+  a.tag{text-decoration:none;cursor:pointer;}
+  a.tag:hover{text-decoration:underline;}
   .sec-h{font-family:'Archivo',sans-serif;font-size:1rem;font-weight:700;color:#fff;margin:20px 0 10px;}
   .src-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 14px;}
   .src-form .fin{flex:1;min-width:150px;}
@@ -181,6 +184,7 @@
     <button class="tab active" data-tab="tracker">📋 All Jobs <span class="cnt" id="tc-all">50</span></button>
     <button class="tab" data-tab="strong">🔥 Strong Fit <span class="cnt" id="tc-t1">—</span></button>
     <button class="tab" data-tab="pipeline">📌 My Pipeline <span class="cnt" id="tc-pipe">—</span></button>
+    <button class="tab" data-tab="archive">🗄 Archive <span class="cnt" id="tc-arch">—</span></button>
     <button class="tab" data-tab="vendor">Vendor-Direct <span class="cnt" id="tc-vendor">—</span></button>
     <button class="tab" data-tab="var">VAR / MSP <span class="cnt" id="tc-var">—</span></button>
     <button class="tab" data-tab="bcdr">BCDR <span class="cnt" id="tc-bcdr">—</span></button>
@@ -207,12 +211,13 @@
 
   <!-- ALL JOBS / FILTERED VIEWS -->
   <div class="page active" id="page-tracker">
-    <div class="notice">✓ <strong>Remote or Greater Boston only.</strong> Base list is a research snapshot from Jul 17 2026 — not a live feed. Listings tagged <strong>⚠ aggregator</strong> came from a job board (LinkedIn / Indeed / BuiltIn) and can go stale after the role closes: always click <strong>Verify on company site</strong> before applying.</div>
+    <div class="notice">✓ <strong>Remote or Greater Boston only.</strong> Listings tagged <strong>⚠ aggregator</strong> came from a job board and can go stale — always click <strong>Verify on company site</strong> before applying. <strong>★ NEW</strong> marks jobs added by the latest research run. <a href="https://github.com/nevs55/JobSearch/actions/workflows/check-links.yml" target="_blank" style="color:var(--accent)">Run a manual link check →</a></div>
     <div class="job-list" id="job-list"></div>
   </div>
 
   <div class="page" id="page-strong"></div>
   <div class="page" id="page-pipeline"></div>
+  <div class="page" id="page-archive"></div>
   <div class="page" id="page-vendor"></div>
   <div class="page" id="page-var"></div>
   <div class="page" id="page-bcdr"></div>
@@ -517,8 +522,8 @@ const FREE_SOURCES=[
 const LS_KEY="jobTrackerData_v1";
 J.forEach(j=>j.id="b"+j.r);
 function loadStore(){
-  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
-  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[]};}
+  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
+  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[]};}
 }
 let STORE=loadStore();
 function saveStore(){
@@ -533,6 +538,8 @@ function allJobs(){
 }
 
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+function isArch(id){return STORE.archived.includes(id);}
 
 const STATUSES=[["","— status —"],["applied","Applied"],["interview","Interview"],["offer","Offer"],["rejected","Rejected"]];
 
@@ -554,7 +561,9 @@ function renderJobs(data,containerId){
     const st=STORE.status[j.id]||"";
     const opts=STATUSES.map(([v,l])=>`<option value="${v}"${v===st?" selected":""}>${l}</option>`).join("");
     const agg=j.url?isAggregator(j.url):false;
-    const srcTag=j.url?(agg?`<span class="tag src-warn">⚠ aggregator</span>`:`<span class="tag src-ok">✓ official site</span>`):"";
+    const srcTag=j.url?(agg?`<span class="tag src-warn">⚠ aggregator</span>`:`<a class="tag src-ok" href="${esc(careersUrl(j.co))}" target="_blank" title="Open ${esc(j.co)}'s careers site">✓ official site</a>`):"";
+    const isNew=j.added&&(Date.now()-new Date(j.added+"T00:00:00").getTime())<3*86400e3;
+    const newTag=isNew?`<span class="tag new">★ NEW ${esc(j.added)}</span>`:"";
     const stat=(LINKSTAT&&j.id&&j.id[0]==="b")?LINKSTAT.jobs[j.r]:null;
     const statTag=stat==="dead"?`<span class="tag link-dead">✗ link dead ${LINKSTAT.checked}</span>`
       :stat==="live"?`<span class="tag link-live">link ✓ ${LINKSTAT.checked}</span>`:"";
@@ -572,11 +581,14 @@ function renderJobs(data,containerId){
       <div class="jfoot">
         <span class="jnote">${esc(j.note)}${contact}<br><span class="src">${esc(j.src)}</span></span>
         <div class="jact">
-          <div class="jtags">${typ}${ne}${rem}${ext}${srcTag}${statTag}</div>
+          <div class="jtags">${newTag}${typ}${ne}${rem}${ext}${srcTag}${statTag}</div>
           <div class="card-controls">
             <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
             <button class="icon-btn" data-act="edit" data-id="${j.id}" title="Edit">✎</button>
-            <button class="icon-btn danger" data-act="del" data-id="${j.id}" title="Remove">✕</button>
+            ${isArch(j.id)
+              ?`<button class="icon-btn" data-act="unarch" data-id="${j.id}" title="Restore to tracker">↩ Restore</button>`
+              :`<button class="icon-btn" data-act="arch" data-id="${j.id}" title="Archive (hide but keep)">🗄</button>`}
+            <button class="icon-btn danger" data-act="del" data-id="${j.id}" title="Delete permanently">✕</button>
           </div>
           ${j.url?`<a class="al" href="${esc(j.url)}" target="_blank">Apply →</a>`:""}
           ${verify}
@@ -683,10 +695,12 @@ function updateStats(data){
 }
 
 function updateCounts(){
-  const A=allJobs();
+  const ALL=allJobs();
+  const A=ALL.filter(j=>!isArch(j.id));
   document.getElementById("tc-all").textContent=A.length;
   document.getElementById("tc-t1").textContent=A.filter(j=>j.tier===1).length;
   document.getElementById("tc-pipe").textContent=A.filter(j=>STORE.status[j.id]).length;
+  document.getElementById("tc-arch").textContent=ALL.filter(j=>isArch(j.id)).length;
   document.getElementById("tc-vendor").textContent=A.filter(j=>j.tags.includes("vendor")).length;
   document.getElementById("tc-var").textContent=A.filter(j=>j.tags.includes("var")).length;
   document.getElementById("tc-bcdr").textContent=A.filter(j=>j.tags.includes("bcdr")).length;
@@ -696,7 +710,7 @@ function updateCounts(){
 }
 
 const FILTER_MAP={
-  tracker:null, strong:"t1", pipeline:"pipeline", vendor:"vendor", var:"var",
+  tracker:null, strong:"t1", pipeline:"pipeline", archive:"archive", vendor:"vendor", var:"var",
   bcdr:"bcdr", hci:"hci", storage:"storage", ne:"ne",
   companies:null, tips:null
 };
@@ -718,11 +732,13 @@ function switchTab(tabId){
   if(tabId==="tips"){updateStats(ALL);return;}
 
   const filter=FILTER_MAP[tabId];
+  const ACT=ALL.filter(j=>!isArch(j.id));
   let data;
-  if(!filter) data=ALL;
-  else if(filter==="t1") data=ALL.filter(j=>j.tier===1);
-  else if(filter==="pipeline") data=ALL.filter(j=>STORE.status[j.id]);
-  else data=ALL.filter(j=>j.tags.includes(filter));
+  if(filter==="archive") data=ALL.filter(j=>isArch(j.id));
+  else if(!filter) data=ACT;
+  else if(filter==="t1") data=ACT.filter(j=>j.tier===1);
+  else if(filter==="pipeline") data=ACT.filter(j=>STORE.status[j.id]);
+  else data=ACT.filter(j=>j.tags.includes(filter));
   data=data.filter(matchesSearch);
 
   updateStats(data);
@@ -789,7 +805,7 @@ function saveModal(){
     else STORE.edits[editingId]=Object.assign(STORE.edits[editingId]||{},fields);
   }else{
     const maxR=allJobs().reduce((mx,j)=>Math.max(mx,j.r),0);
-    STORE.custom.push(Object.assign({id:"c"+Date.now(),r:maxR+1,src:"Added manually"},fields));
+    STORE.custom.push(Object.assign({id:"c"+Date.now(),r:maxR+1,src:"Added manually",added:new Date().toISOString().slice(0,10)},fields));
   }
   saveStore();
   closeModal();
@@ -837,10 +853,21 @@ document.addEventListener("click",e=>{
   const job=allJobs().find(j=>j.id===id);
   if(!job)return;
   if(btn.dataset.act==="edit")openModal(job);
-  else if(btn.dataset.act==="del"&&confirm(`Remove "${job.t}" (${job.co}) from the tracker?`)){
+  else if(btn.dataset.act==="arch"){
+    STORE.archived.push(id);
+    saveStore();
+    switchTab(currentTab);
+  }
+  else if(btn.dataset.act==="unarch"){
+    STORE.archived=STORE.archived.filter(a=>a!==id);
+    saveStore();
+    switchTab(currentTab);
+  }
+  else if(btn.dataset.act==="del"&&confirm(`Permanently delete "${job.t}" (${job.co})? Use Archive instead if you might want it back.`)){
     if(STORE.custom.some(c=>c.id===id))STORE.custom=STORE.custom.filter(c=>c.id!==id);
     else STORE.deleted.push(id);
     delete STORE.status[id];
+    STORE.archived=STORE.archived.filter(a=>a!==id);
     saveStore();
     switchTab(currentTab);
   }
@@ -855,7 +882,7 @@ document.addEventListener("change",e=>{
       try{
         const d=JSON.parse(r.result);
         if(typeof d!=="object"||d===null)throw new Error("bad");
-        STORE=Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[]},d);
+        STORE=Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[]},d);
         saveStore();
         switchTab(currentTab);
         alert("Backup imported — your jobs, statuses, and sources are restored.");
@@ -930,7 +957,7 @@ async function pullAndMerge(){
     const remote=data&&data.data;
     const rts=(remote&&remote._ts)||0,lts=STORE._ts||0;
     if(remote&&rts>lts){
-      STORE=Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[]},remote);
+      STORE=Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[]},remote);
       try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}
       switchTab(currentTab);
       syncMsg("Loaded newer data from the cloud.");
