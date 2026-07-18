@@ -36,7 +36,8 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: "--allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch"
+          show_full_output: true
+          claude_args: "--allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch --max-turns 300"
           prompt: |
             You are updating Erik Neville's job tracker in this repository checkout. index.html holds the job list in the `J` array (one object per line: r, t, co, tier, tags, remote, m, note, url, src, optional added) and a `COMPANIES` array of tracked companies.
 
