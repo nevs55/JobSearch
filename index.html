@@ -124,6 +124,8 @@
   .tag.src-ok{color:#7ddf9a;border-color:rgba(125,223,154,.3);}
   .tag.src-warn{color:#f5a623;border-color:rgba(245,166,35,.4);}
   .al.verify{color:var(--accent2);}
+  .contact-line{display:block;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:.64rem;color:#7ecde8;}
+  .contact-line a{color:#7ecde8;}
   .sec-h{font-family:'Archivo',sans-serif;font-size:1rem;font-weight:700;color:#fff;margin:20px 0 10px;}
   .src-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 14px;}
   .src-form .fin{flex:1;min-width:150px;}
@@ -342,6 +344,10 @@
       <div class="fcol" style="max-width:110px"><span class="flab">Match %</span><input class="fin" id="f-match" type="number" min="0" max="100" value="80"></div>
     </div>
     <div class="frow">
+      <div class="fcol"><span class="flab">Contact Name</span><input class="fin" id="f-contact" type="text" placeholder="e.g. Jane Smith — recruiter"></div>
+      <div class="fcol"><span class="flab">Contact Email</span><input class="fin" id="f-cemail" type="email" placeholder="jane@company.com"></div>
+    </div>
+    <div class="frow">
       <div class="fcol"><span class="flab">Type & Location</span>
         <div class="fchecks">
           <label class="fchk"><input type="radio" name="f-type" value="vendor" checked> Vendor</label>
@@ -548,6 +554,7 @@ function renderJobs(data,containerId){
     const agg=j.url?isAggregator(j.url):false;
     const srcTag=j.url?(agg?`<span class="tag src-warn">⚠ aggregator</span>`:`<span class="tag src-ok">✓ official site</span>`):"";
     const verify=agg?`<a class="al verify" href="${esc(careersUrl(j.co))}" target="_blank">Verify on company site →</a>`:"";
+    const contact=(j.contact||j.cemail)?`<span class="contact-line">👤 ${esc(j.contact||"Contact")}${j.cemail?` · <a href="mailto:${esc(j.cemail)}">${esc(j.cemail)}</a>`:""}</span>`:"";
     return `<div class="jc" style="animation-delay:${i*.02}s">
       <div class="jmain">
         <div class="jt"><span class="jrn">#${j.r}</span>${esc(j.t)}</div>
@@ -558,7 +565,7 @@ function renderJobs(data,containerId){
         <div class="mrow"><div class="mbar"><div class="mfill" style="width:${j.m}%"></div></div><span>${j.m}%</span></div>
       </div>
       <div class="jfoot">
-        <span class="jnote">${esc(j.note)}<br><span class="src">${esc(j.src)}</span></span>
+        <span class="jnote">${esc(j.note)}${contact}<br><span class="src">${esc(j.src)}</span></span>
         <div class="jact">
           <div class="jtags">${typ}${ne}${rem}${ext}${srcTag}</div>
           <div class="card-controls">
@@ -629,7 +636,7 @@ let query="";
 
 function matchesSearch(j){
   if(!query)return true;
-  const hay=`${j.t} ${j.co} ${j.note} ${j.src} ${j.tags.join(" ")}`.toLowerCase();
+  const hay=`${j.t} ${j.co} ${j.note} ${j.src} ${j.contact||""} ${j.cemail||""} ${j.tags.join(" ")}`.toLowerCase();
   return query.split(/\s+/).every(w=>hay.includes(w));
 }
 
@@ -725,6 +732,8 @@ function openModal(job){
   document.getElementById("f-title").value=job?job.t:"";
   document.getElementById("f-co").value=job?job.co:"";
   document.getElementById("f-url").value=job&&job.url?job.url:"";
+  document.getElementById("f-contact").value=job&&job.contact?job.contact:"";
+  document.getElementById("f-cemail").value=job&&job.cemail?job.cemail:"";
   document.getElementById("f-tier").value=job?String(job.tier):"2";
   document.getElementById("f-match").value=job?job.m:80;
   document.querySelector(`input[name="f-type"][value="${job&&job.tags.includes("var")?"var":"vendor"}"]`).checked=true;
@@ -751,6 +760,8 @@ function saveModal(){
   const fields={
     t,co,tags,
     url:document.getElementById("f-url").value.trim(),
+    contact:document.getElementById("f-contact").value.trim(),
+    cemail:document.getElementById("f-cemail").value.trim(),
     tier:parseInt(document.getElementById("f-tier").value,10),
     m:Math.max(0,Math.min(100,parseInt(document.getElementById("f-match").value,10)||0)),
     remote:document.getElementById("f-remote").checked,
