@@ -27,6 +27,7 @@ const AGG = ["builtin.com","indeed.com","glassdoor.com","ziprecruiter.com","link
 // substring. These always win over the automated check.
 const MANUAL_OVERRIDES = [
   ["careers.nutanix.com/en/jobs/n2317", "dead"], // user got 404 in browser, Jul 18 2026
+  ["Zerto-Pre-Sales-Engineer_1191961", "dead"], // WebFetch got 410 Gone on both the Workday URL and the careers.hpe.com mirror, Jul 19 2026 — curl only sees the 200 SPA shell
 ];
 const DEAD_MARKERS = ["no longer accepting","job not found","position is no longer","not accepting applications","this job is no longer","position has been filled","posting is no longer","job has closed","job posting you are looking","page not found","couldn't find that job","job expired","this job has expired"];
 

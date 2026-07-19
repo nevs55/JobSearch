@@ -1,5 +1,5 @@
 {
- "checked": "2026-07-18",
+ "checked": "2026-07-19",
  "jobs": {
   "1": "dead",
   "2": "live",
@@ -12,7 +12,7 @@
   "9": "live",
   "10": "live",
   "11": "live",
-  "12": "live",
+  "12": "dead",
   "13": "unknown",
   "14": "unknown",
   "15": "unknown",
@@ -69,6 +69,11 @@
   "72": "live",
   "73": "live",
   "74": "live",
-  "75": "live"
+  "75": "live",
+  "76": "live",
+  "77": "live",
+  "78": "unknown",
+  "79": "live",
+  "80": "live"
  }
 }
