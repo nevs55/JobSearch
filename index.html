@@ -695,7 +695,7 @@ function renderJobs(data,containerId){
     const agg=j.url?isAggregator(j.url):false;
     const srcTag=j.url?(agg?`<span class="tag src-warn">⚠ aggregator</span>`:`<a class="tag src-ok" href="${esc(careersUrl(j.co))}" target="_blank" title="Open ${esc(j.co)}'s careers site">✓ official site</a>`):"";
     const isNew=j.added&&(Date.now()-new Date(j.added+"T00:00:00").getTime())<3*86400e3;
-    const newTag=isNew?`<span class="tag new">★ NEW ${esc(j.added)}</span>`:"";
+    const newTag=j.added?(isNew?`<span class="tag new">★ NEW ${esc(j.added)}</span>`:`<span class="tag">found ${esc(j.added)}</span>`):"";
     const stat=(LINKSTAT&&j.id&&j.id[0]==="b")?LINKSTAT.jobs[j.r]:null;
     const statTag=stat==="dead"?`<span class="tag link-dead">✗ link dead ${LINKSTAT.checked}</span>`
       :stat==="live"?`<span class="tag link-live">link ✓ ${LINKSTAT.checked}</span>`:"";
@@ -810,6 +810,15 @@ fetch("link-status.json").then(r=>r.ok?r.json():null).then(d=>{
   switchTab(currentTab);
 }).catch(()=>{});
 
+// Newest finds first (by added date, descending), then the original rank order.
+function sortJobs(list){
+  return list.slice().sort((a,b)=>{
+    const ad=a.added||"",bd=b.added||"";
+    if(ad!==bd)return ad>bd?-1:1;
+    return a.r-b.r;
+  });
+}
+
 function matchesSearch(j){
   if(!query)return true;
   const hay=`${j.t} ${j.co} ${j.note} ${j.src} ${j.contact||""} ${j.cemail||""} ${j.tags.join(" ")}`.toLowerCase();
@@ -887,7 +896,7 @@ function switchTab(tabId){
   else if(filter==="t1") data=ACT.filter(j=>j.tier===1);
   else if(filter==="pipeline") data=ACT.filter(j=>STORE.status[j.id]);
   else data=ACT.filter(j=>j.tags.includes(filter));
-  data=data.filter(matchesSearch);
+  data=sortJobs(data.filter(matchesSearch));
 
   updateStats(data);
   updateCounts();
@@ -1383,8 +1392,8 @@ document.getElementById("profile-save").addEventListener("click",async()=>{
 
 // init
 updateCounts();
-renderJobs(allJobs(),"job-list");
-updateStats(allJobs());
+renderJobs(sortJobs(allJobs().filter(j=>!isArch(j.id))),"job-list");
+updateStats(allJobs().filter(j=>!isArch(j.id)));
 
 document.querySelector(".tab-bar").addEventListener("click",e=>{
   const tab=e.target.closest(".tab");

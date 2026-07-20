@@ -22,3 +22,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git push origin HEAD:gh-pages --force
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "Cloudflare secrets not set - skipping Pages deploy (GitHub Pages still updated)."
+            exit 0
+          fi
+          mkdir -p /tmp/site
+          cp index.html link-status.json profile.md job-tracker*.html README.md /tmp/site/
+          npx --yes wrangler@latest pages deploy /tmp/site --project-name=jobsearch --branch=main --commit-dirty=true
