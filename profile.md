@@ -11,7 +11,11 @@ Derive the target roles, seniority, locations, and focus areas for job research 
 - Roles: Senior Solutions Architect / Pre-Sales Systems or Sales Engineer / Technical Account Manager
 - Location: Remote-US or Greater Boston / New England (on-site acceptable only in Greater Boston)
 - Focus: BCDR (backup / disaster recovery), HCI, enterprise storage, virtualization, hybrid cloud, datacenter infrastructure
-- Employers: vendors and VARs / MSPs / SIs; open to Boston-area tech companies hiring pre-sales technical roles
+- Employers: cast a WIDE net — established vendors and VARs / MSPs / SIs are the base, but do not stop there:
+  - Greater Boston tech companies of any size hiring pre-sales technical roles
+  - NEW & UPCOMING companies: startups and growth-stage companies (seed through pre-IPO, recently funded, expanding sales teams) in data infrastructure, storage, backup / cyber-resilience, security, cloud, and AI — early SE hires value deep enterprise infrastructure experience
+  - AI COMPANIES explicitly in scope: AI platforms, model providers, AI infrastructure/tooling (GPU clouds, vector databases, ML data platforms), and applied-AI companies hiring pre-sales SEs/SAs — enterprise datacenter depth plus hands-on homelab AI experience (Ollama) is the angle
+  - Watch funding announcements and VC portfolio job boards (Accel, YC Work at a Startup, Boston-area VCs) plus BuiltIn Boston and Wellfound for companies not yet on anyone's radar
 - Fit tiers: prefer strong fits (tier 1); include good adjacent fits (tier 2) and worthwhile stretches (tier 3)
 
 ## Background summary
