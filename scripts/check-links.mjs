@@ -28,6 +28,7 @@ const AGG = ["builtin.com","indeed.com","glassdoor.com","ziprecruiter.com","link
 const MANUAL_OVERRIDES = [
   ["careers.nutanix.com/en/jobs/n2317", "dead"], // user got 404 in browser, Jul 18 2026
   ["Zerto-Pre-Sales-Engineer_1191961", "dead"], // WebFetch got 410 Gone on both the Workday URL and the careers.hpe.com mirror, Jul 19 2026 — curl only sees the 200 SPA shell
+  ["cribl.io/job-detail/?gh_jid=6099714004", "live"], // Greenhouse API + rendered page both confirm live, Jul 20 2026 — curl's body match hits unrelated "Page Not Found" component boilerplate shipped in every page's JS bundle
 ];
 const DEAD_MARKERS = ["no longer accepting","job not found","position is no longer","not accepting applications","this job is no longer","position has been filled","posting is no longer","job has closed","job posting you are looking","page not found","couldn't find that job","job expired","this job has expired"];
 
