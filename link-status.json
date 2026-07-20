@@ -23,7 +23,7 @@
   "21": "dead",
   "22": "dead",
   "23": "dead",
-  "24": "live",
+  "24": "dead",
   "25": "live",
   "26": "live",
   "27": "live",
@@ -74,6 +74,16 @@
   "77": "live",
   "78": "unknown",
   "79": "live",
-  "80": "live"
+  "80": "live",
+  "81": "live",
+  "82": "live",
+  "83": "live",
+  "84": "live",
+  "85": "live",
+  "86": "live",
+  "87": "live",
+  "88": "live",
+  "89": "live",
+  "90": "unknown"
  }
 }
