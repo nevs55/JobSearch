@@ -373,20 +373,28 @@
   <div class="modal">
     <h2>☁ Cloud Sync</h2>
     <div id="sync-out">
-      <p style="font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:14px">Enter your email and you'll get a sign-in link — no password needed. Sign in on any device and your jobs, statuses, and sources sync everywhere automatically. Your data stays private to your account.</p>
-      <div class="frow"><div class="fcol"><span class="flab">Email</span><input class="fin" id="sync-email" type="email" placeholder="you@example.com" autocomplete="email"></div></div>
-      <p style="font-size:.75rem;min-height:1.2em;margin:4px 0" id="sync-msg"></p>
+      <p style="font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:14px">Sign in once per device and your archive, applied statuses, added jobs, and sources follow you everywhere — you stay signed in. First time here? Use “Email Me a Sign-In Link”, then set a password so future sign-ins are instant.</p>
+      <div class="frow">
+        <div class="fcol"><span class="flab">Email</span><input class="fin" id="sync-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="fcol"><span class="flab">Password</span><input class="fin" id="sync-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      </div>
+      <p style="font-size:.78rem;min-height:1.2em;margin:4px 0" id="sync-msg"></p>
       <div class="modal-actions">
         <button class="btn-sec" id="sync-close-out">Close</button>
-        <button class="add-btn" id="sync-send">Send Sign-In Link</button>
+        <button class="btn-sec" id="sync-send">Email Me a Sign-In Link</button>
+        <button class="add-btn" id="sync-signin">Sign In</button>
       </div>
     </div>
     <div id="sync-in" style="display:none">
-      <p style="font-size:.82rem;color:var(--text);margin-bottom:6px" id="sync-who"></p>
-      <p style="font-size:.75rem;color:var(--muted);line-height:1.6;margin-bottom:10px">Changes save to the cloud automatically a moment after you make them. “Sync Now” pulls the latest from your other devices.</p>
-      <p style="font-size:.75rem;min-height:1.2em;margin:4px 0" id="sync-msg2"></p>
+      <p style="font-size:.85rem;color:var(--text);margin-bottom:6px" id="sync-who"></p>
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:10px">Changes save to the cloud automatically. “Sync Now” pulls the latest from your other devices.</p>
+      <div class="frow">
+        <div class="fcol"><span class="flab">Set / Change Password — makes future sign-ins instant, no email needed</span><input class="fin" id="sync-newpass" type="password" placeholder="Choose a password (8+ characters)" autocomplete="new-password"></div>
+      </div>
+      <p style="font-size:.78rem;min-height:1.2em;margin:4px 0" id="sync-msg2"></p>
       <div class="modal-actions">
         <button class="btn-sec" id="sync-signout">Sign Out</button>
+        <button class="btn-sec" id="sync-setpass">Save Password</button>
         <button class="btn-sec" id="sync-close-in">Close</button>
         <button class="add-btn" id="sync-now">Sync Now</button>
       </div>
@@ -1164,8 +1172,17 @@ async function pushRemote(){
 function schedulePush(){
   if(!sb||!sbUser)return;
   clearTimeout(pushTimer);
-  pushTimer=setTimeout(pushRemote,1200);
+  pushTimer=setTimeout(pushRemote,400);
 }
+// Flush pending saves when leaving; pull fresh data when returning.
+document.addEventListener("visibilitychange",()=>{
+  if(!sb||!sbUser)return;
+  if(document.visibilityState==="hidden"){clearTimeout(pushTimer);pushRemote();}
+  else pullAndMerge();
+});
+window.addEventListener("pagehide",()=>{
+  if(sb&&sbUser){clearTimeout(pushTimer);pushRemote();}
+});
 async function pullAndMerge(){
   if(!sb||!sbUser)return;
   try{
@@ -1205,6 +1222,32 @@ document.getElementById("sync-send").addEventListener("click",async()=>{
     if(error)throw error;
     syncMsg("Check your email and open the sign-in link on this device.");
   }catch(e){syncMsg("Couldn't send the link: "+(e.message||e),true);}
+});
+document.getElementById("sync-signin").addEventListener("click",async()=>{
+  const email=document.getElementById("sync-email").value.trim();
+  const pass=document.getElementById("sync-pass").value;
+  if(!email||!email.includes("@")){syncMsg("Enter a valid email address.",true);return;}
+  if(!pass){syncMsg("Enter your password — or use “Email Me a Sign-In Link” if you haven't set one yet.",true);return;}
+  syncMsg("Signing in…");
+  try{
+    const {error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error)throw error;
+    document.getElementById("sync-pass").value="";
+    syncMsg("Signed in — syncing…");
+  }catch(e){
+    syncMsg("Sign-in failed: "+(e.message||e)+". No password yet? Use “Email Me a Sign-In Link”, then set one.",true);
+  }
+});
+document.getElementById("sync-setpass").addEventListener("click",async()=>{
+  const p=document.getElementById("sync-newpass").value;
+  if(p.length<8){syncMsg("Password needs at least 8 characters.",true);return;}
+  syncMsg("Saving password…");
+  try{
+    const {error}=await sb.auth.updateUser({password:p});
+    if(error)throw error;
+    document.getElementById("sync-newpass").value="";
+    syncMsg("Password saved ✓ — from now on just type email + password to sign in on any device.");
+  }catch(e){syncMsg("Couldn't save password: "+(e.message||e),true);}
 });
 document.getElementById("sync-signout").addEventListener("click",async()=>{
   try{await sb.auth.signOut();}catch(e){}
