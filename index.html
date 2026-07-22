@@ -38,6 +38,9 @@
   .side-h2{margin:10px 4px 3px;font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
   .chips{display:flex;flex-wrap:wrap;gap:4px;padding:0 2px;}
   .pager{display:flex;justify-content:center;align-items:center;gap:14px;padding:20px 0 4px;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);}
+  .jc [data-fg]{cursor:pointer;}
+  .jc [data-fg]:hover{filter:brightness(1.45);}
+  .jco[data-fg]:hover{text-decoration:underline;}
   @media(max-width:900px){
     .layout{flex-direction:column;}
     .tab-bar{flex-direction:row;flex-wrap:wrap;width:100%;max-height:none;position:static;overflow-x:auto;padding:10px 12px 0;}
@@ -785,10 +788,10 @@ function renderJobs(data,containerId){
   if(!data.length){el.innerHTML='<div class="empty">No roles match.</div>';return;}
   el.innerHTML=data.map((j,i)=>{
     const t=tl(j.tier);
-    const ne=j.tags.includes("ne")?`<span class="tag b">NE/Boston</span>`:"";
-    const rem=j.remote?`<span class="tag r">Remote</span>`:`<span class="tag">On-site</span>`;
-    const typ=j.tags.includes("vendor")?`<span class="tag v">Vendor</span>`:`<span class="tag">VAR/MSP</span>`;
-    const ext=j.tags.filter(x=>!["ne","vendor","var"].includes(x)).map(x=>`<span class="tag">${x.toUpperCase()}</span>`).join("");
+    const ne=j.tags.includes("ne")?`<span class="tag b" data-fg="loc" data-fv="ne" title="Filter: NE/Boston">NE/Boston</span>`:"";
+    const rem=j.remote?`<span class="tag r" data-fg="loc" data-fv="remote" title="Filter: Remote">Remote</span>`:`<span class="tag">On-site</span>`;
+    const typ=j.tags.includes("vendor")?`<span class="tag v" data-fg="type" data-fv="vendor" title="Filter: Vendor">Vendor</span>`:`<span class="tag" data-fg="type" data-fv="var" title="Filter: VAR/MSP">VAR/MSP</span>`;
+    const ext=j.tags.filter(x=>!["ne","vendor","var"].includes(x)).map(x=>`<span class="tag" data-fg="focus" data-fv="${x}" title="Filter: ${x.toUpperCase()}">${x.toUpperCase()}</span>`).join("");
     const st=STORE.status[j.id]||"";
     const opts=STATUSES.map(([v,l])=>`<option value="${v}"${v===st?" selected":""}>${l}</option>`).join("");
     const agg=j.url?isAggregator(j.url):false;
@@ -804,10 +807,10 @@ function renderJobs(data,containerId){
     return `<div class="jc" data-id="${j.id}" style="animation-delay:${i*.02}s">
       <div class="jmain">
         <div class="jt"><span class="jrn">#${j.r}</span>${esc(j.t)}</div>
-        <div class="jco">${esc(j.co)}</div>
+        <div class="jco" data-fg="company" data-fv="${esc(j.co)}" title="Filter: only ${esc(j.co)}">${esc(j.co)}</div>
       </div>
       <div class="jright">
-        <span class="badge ${t.cls}">${t.txt}</span>
+        <span class="badge ${t.cls}" data-fg="tier" data-fv="${j.tier}" title="Filter: ${t.txt}">${t.txt}</span>
         <div class="mrow"><div class="mbar"><div class="mfill" style="width:${j.m}%"></div></div><span>${j.m}%</span></div>
       </div>
       <div class="jfoot">
@@ -986,6 +989,16 @@ function applyFilters(list){
     return true;
   });
 }
+function syncChipUI(){
+  document.querySelectorAll(".chips").forEach(g=>{
+    const grp=g.dataset.group;
+    g.querySelectorAll(".fb").forEach(c=>{
+      if(g.dataset.single)c.classList.toggle("active",String(FILTERS[grp])===c.dataset.val);
+      else c.classList.toggle("active",FILTERS[grp].has(c.dataset.val));
+    });
+  });
+}
+
 let companyOptCount=0;
 function populateCompanyFilter(){
   const sel=document.getElementById("company-filter");
@@ -1180,6 +1193,19 @@ document.addEventListener("click",e=>{
     curPage+=pg.dataset.pg==="next"?1:-1;
     switchTab(currentTab,true);
     window.scrollTo({top:0,behavior:"smooth"});
+    return;
+  }
+  const ft=e.target.closest("[data-fg]");
+  if(ft&&ft.closest(".jc")){
+    const g=ft.dataset.fg,v=ft.dataset.fv;
+    if(g==="company"){
+      FILTERS.company=FILTERS.company===v?"":v;
+      document.getElementById("company-filter").value=FILTERS.company;
+    }else{
+      FILTERS[g].has(v)?FILTERS[g].delete(v):FILTERS[g].add(v);
+    }
+    syncChipUI();
+    switchTab(currentTab);
     return;
   }
   const btn=e.target.closest("[data-act]");
