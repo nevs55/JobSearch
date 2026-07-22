@@ -1189,23 +1189,40 @@ document.addEventListener("visibilitychange",()=>{
 window.addEventListener("pagehide",()=>{
   if(sb&&sbUser){clearTimeout(pushTimer);pushRemote();}
 });
+// True union merge — neither side can wipe the other. Per-job statuses and
+// edits: the side with the newer overall timestamp wins conflicts; lists
+// (custom jobs, archived, deleted, sources) are unioned.
+function mergeStores(a,b){
+  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[]};
+  const A=Object.assign({},D,a),B=Object.assign({},D,b);
+  const newer=(A._ts||0)>=(B._ts||0)?A:B;
+  const older=newer===A?B:A;
+  const byId={};[...older.custom,...newer.custom].forEach(c=>{if(c&&c.id)byId[c.id]=c;});
+  const srcKey={};[...older.sources,...newer.sources].forEach(s=>{if(s&&s.url)srcKey[s.name+"|"+s.url]=s;});
+  return{
+    custom:Object.values(byId),
+    edits:Object.assign({},older.edits,newer.edits),
+    deleted:[...new Set([...older.deleted,...newer.deleted])],
+    archived:[...new Set([...older.archived,...newer.archived])],
+    autoArch:[...new Set([...older.autoArch,...newer.autoArch])],
+    status:Object.assign({},older.status,newer.status),
+    sources:Object.values(srcKey),
+    _ts:Date.now()
+  };
+}
+
 async function pullAndMerge(){
   if(!sb||!sbUser)return;
   try{
     const {data,error}=await sb.from("tracker_data").select("data").maybeSingle();
     if(error)throw error;
     const remote=data&&data.data;
-    const rts=(remote&&remote._ts)||0,lts=STORE._ts||0;
-    if(remote&&rts>lts){
-      STORE=Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[]},remote);
-      try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}
-      switchTab(currentTab);
-      syncMsg("Loaded newer data from the cloud.");
-    }else if(lts>rts){
-      await pushRemote();
-    }else{
-      syncMsg("Up to date.");
-    }
+    if(remote)STORE=mergeStores(STORE,remote);
+    else STORE._ts=Date.now();
+    try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}
+    switchTab(currentTab);
+    await pushRemote();
+    syncMsg("Synced ✓ "+new Date().toLocaleTimeString());
   }catch(e){syncMsg("Cloud load failed: "+(e.message||e),true);}
 }
 
@@ -1240,6 +1257,7 @@ document.getElementById("sync-signin").addEventListener("click",async()=>{
     if(error)throw error;
     document.getElementById("sync-pass").value="";
     syncMsg("Signed in — syncing…");
+    setTimeout(()=>syncOverlay.classList.remove("open"),900);
   }catch(e){
     syncMsg("Sign-in failed: "+(e.message||e)+". No password yet? Use “Email Me a Sign-In Link”, then set one.",true);
   }
@@ -1253,6 +1271,7 @@ document.getElementById("sync-setpass").addEventListener("click",async()=>{
     if(error)throw error;
     document.getElementById("sync-newpass").value="";
     syncMsg("Password saved ✓ — from now on just type email + password to sign in on any device.");
+    setTimeout(()=>syncOverlay.classList.remove("open"),1400);
   }catch(e){syncMsg("Couldn't save password: "+(e.message||e),true);}
 });
 document.getElementById("sync-signout").addEventListener("click",async()=>{
