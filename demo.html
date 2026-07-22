@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Tracker — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  #sync-btn,#research-btn,#profile-btn{display:none!important;}
+  :root{
+    --bg:#0b0e13;--surface:#13161f;--card:#181c27;--card-hov:#1d2233;
+    --border:#222b3b;--accent:#00d4aa;--accent2:#f5a623;--text:#d4dced;--muted:#8b96b0;
+    --t1:#00d4aa;--t2:#5b9cf6;--t3:#a084e8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
+
+  /* ── HEADER ── */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 20px 2px;}
+  .header-top{max-width:1060px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-bottom:16px;}
+  .hl h1{font-family:'Archivo',sans-serif;font-size:1.7rem;font-weight:800;letter-spacing:-.03em;color:#fff;}
+  .hl h1 em{color:var(--accent);font-style:normal;}
+  .hl p{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-top:3px;}
+  .stats{display:flex;gap:18px;flex-wrap:wrap;}
+  .stat .n{font-family:'Archivo',sans-serif;font-size:1.35rem;font-weight:800;color:var(--accent);line-height:1;}
+  .stat .l{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+
+  /* ── TABS ── */
+  /* ── LAYOUT: LEFT SIDEBAR + MAIN ── */
+  .layout{max-width:1500px;margin:0 auto;display:flex;align-items:flex-start;}
+  .main{flex:1;min-width:0;}
+  .tab-bar{display:flex;flex-direction:column;gap:4px;width:212px;flex-shrink:0;position:sticky;top:0;max-height:100vh;overflow-y:auto;padding:16px 10px 16px 14px;scrollbar-width:none;}
+  .tab-bar::-webkit-scrollbar{display:none;}
+  .tab{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:500;padding:10px 14px;border-radius:8px;border:1px solid transparent;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .14s;background:transparent;letter-spacing:.05em;text-transform:uppercase;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .tab:hover{color:var(--text);background:rgba(255,255,255,.04);}
+  .tab.active{color:#fff;background:var(--card);border-color:var(--border);}
+  .sgroup{display:flex;flex-direction:column;gap:4px;}
+  .sg-h{margin:14px 4px 4px;padding-top:12px;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;}
+  .sgroup:first-child .sg-h{margin-top:0;padding-top:2px;border-top:none;}
+  .sg-h:hover{color:#fff;}
+  .sg-h .chev{display:inline-block;font-size:.58rem;transition:transform .15s;color:var(--muted);}
+  .sgroup.closed .sg-h .chev{transform:rotate(-90deg);}
+  .sg-b{display:flex;flex-direction:column;gap:4px;}
+  .sgroup.closed .sg-b{display:none;}
+  .sg-badge{margin-left:auto;background:rgba(0,212,170,.15);color:var(--accent);border-radius:10px;padding:1px 7px;font-size:.58rem;display:none;}
+  .sg-badge.on{display:inline-block;}
+  .sg-h .fb{margin-left:auto;}
+  .sg-h .sg-badge.on + .fb,.sg-h .sg-badge.on ~ .fb{margin-left:0;}
+  .side-h2{margin:10px 4px 3px;font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+  .chips{display:flex;flex-wrap:wrap;gap:4px;padding:0 2px;}
+  .pager{display:flex;justify-content:center;align-items:center;gap:14px;padding:20px 0 4px;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);}
+  .jc [data-fg]{cursor:pointer;}
+  .jc [data-fg]:hover{filter:brightness(1.45);}
+  .jco[data-fg]:hover{text-decoration:underline;}
+  @media(max-width:900px){
+    .layout{flex-direction:column;}
+    .tab-bar{flex-direction:row;flex-wrap:wrap;width:100%;max-height:none;position:static;overflow-x:auto;padding:10px 12px 0;}
+    .tab{flex-shrink:0;}
+    .sgroup{width:100%;}
+    .sg-h{border-top:none;margin-top:4px;padding-top:4px;}
+    .sg-b{flex-direction:row;flex-wrap:wrap;align-items:center;}
+  }
+  .tab .cnt{display:inline-block;background:rgba(255,255,255,.08);border-radius:10px;padding:1px 6px;font-size:.55rem;margin-left:5px;color:var(--muted);}
+  .tab.active .cnt{background:rgba(0,212,170,.15);color:var(--accent);}
+
+  /* ── BODY ── */
+  .body{padding:18px 18px 60px 8px;}
+  @media(max-width:900px){.body{padding:18px 14px 60px;}}
+
+  /* ── NOTICE ── */
+  .notice{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.2);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:1.65;color:var(--accent);letter-spacing:.03em;margin-bottom:14px;}
+  .notice strong{color:#fff;}
+
+  /* ── FILTER BAR ── */
+  .fbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .flbl{font-family:'JetBrains Mono',monospace;font-size:.59rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-right:2px;}
+  .fb{font-family:'JetBrains Mono',monospace;font-size:.61rem;padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;text-transform:uppercase;letter-spacing:.05em;}
+  .fb:hover{border-color:var(--accent);color:var(--accent);}
+  .fb.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:500;}
+
+  /* ── JOB CARDS ── */
+  .job-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:stretch;}
+  @media(max-width:1024px){.job-list{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:660px){.job-list{grid-template-columns:1fr;}}
+  .jc{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;transition:border-color .12s,background .12s;animation:up .18s ease both;}
+  .jc:hover{border-color:rgba(0,212,170,.35);background:var(--card-hov);}
+  @keyframes up{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+  .jmain{padding-right:0;}
+  .jright{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px;min-width:0;}
+  .jt{font-family:'Archivo',sans-serif;font-size:1.02rem;font-weight:700;color:#fff;line-height:1.3;}
+  .jrn{font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--muted);margin-right:4px;}
+  .jco{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:.64rem;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+  .b1{background:rgba(0,212,170,.1);color:var(--t1);border:1px solid rgba(0,212,170,.24);}
+  .b2{background:rgba(91,156,246,.1);color:var(--t2);border:1px solid rgba(91,156,246,.24);}
+  .b3{background:rgba(160,132,232,.1);color:var(--t3);border:1px solid rgba(160,132,232,.24);}
+  .mrow{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);}
+  .mbar{width:62px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .mfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+  .jfoot{margin-top:auto;padding-top:8px;border-top:1px solid var(--border);display:flex;flex-direction:column;align-items:stretch;gap:8px;}
+  .jnote{font-size:.86rem;color:#bac4d9;line-height:1.62;min-width:0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+  .jact{display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex-shrink:0;}
+  .jtags{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-start;}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:.62rem;padding:3px 8px;border-radius:3px;background:var(--surface);border:1px solid var(--border);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .tag.r{color:#f5c842;border-color:rgba(245,200,66,.2);}
+  .tag.b{color:#7ecde8;border-color:rgba(126,205,232,.2);}
+  .tag.v{color:#a0d9a0;border-color:rgba(160,217,160,.2);}
+  .tag.ct{color:#c9a6ff;border-color:rgba(201,166,255,.35);background:rgba(201,166,255,.07);}
+  #modal-overlay .modal.quick .frow,#modal-overlay .modal.quick .modal-actions{display:none;}
+  #modal-overlay .modal.quick #quick-row{display:flex;}
+  #modal-overlay .modal:not(.quick) #quick-row{display:none;}
+  .src{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);opacity:.85;font-style:italic;}
+  .al{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--accent);text-decoration:none;text-transform:uppercase;letter-spacing:.06em;opacity:.8;transition:opacity .12s;}
+  .al:hover{opacity:1;text-decoration:underline;}
+  .empty{text-align:center;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.74rem;padding:32px 0;}
+
+  /* ── SEARCH ── */
+  .search-wrap{padding:16px 18px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  @media(max-width:900px){.search-wrap{padding:14px 14px 0;}}
+  .search-box{flex:1;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 14px;transition:border-color .14s;}
+  .search-box:focus-within{border-color:var(--accent);}
+  .search-box .icon{color:var(--muted);font-size:.8rem;flex-shrink:0;}
+  #search{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Inter',sans-serif;font-size:.95rem;}
+  #search::placeholder{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;}
+  .search-clear{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:20px;padding:3px 10px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;display:none;transition:all .12s;}
+  .search-clear:hover{border-color:var(--accent);color:var(--accent);}
+  .search-clear.show{display:block;}
+  .add-btn{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:500;color:#000;background:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:9px 16px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;transition:opacity .12s;}
+  .add-btn:hover{opacity:.85;}
+
+  /* ── STATUS & CARD CONTROLS ── */
+  .card-controls{display:flex;align-items:center;gap:5px;}
+  .status-sel{font-family:'JetBrains Mono',monospace;font-size:.65rem;padding:3px 6px;border-radius:20px;background:var(--surface);border:1px solid var(--border);color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;outline:none;}
+  .status-sel.st-applied{color:#5b9cf6;border-color:rgba(91,156,246,.4);}
+  .status-sel.st-interview{color:#f5a623;border-color:rgba(245,166,35,.4);}
+  .status-sel.st-offer{color:#00d4aa;border-color:rgba(0,212,170,.4);}
+  .status-sel.st-rejected{color:#e05a5a;border-color:rgba(224,90,90,.4);}
+  .icon-btn{font-size:.78rem;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;padding:2px 7px;transition:all .12s;line-height:1.4;}
+  .icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .icon-btn.danger:hover{border-color:#e05a5a;color:#e05a5a;}
+
+  /* ── MODAL ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,7,10,.72);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:24px 14px;overflow-y:auto;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:600px;width:100%;padding:22px 24px;margin:auto 0;}
+  .modal h2{font-family:'Archivo',sans-serif;font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:16px;}
+  .frow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .fcol{flex:1;min-width:150px;display:flex;flex-direction:column;gap:4px;}
+  .flab{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+  .fin{background:var(--card);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Inter',sans-serif;font-size:.85rem;padding:8px 10px;outline:none;transition:border-color .12s;width:100%;}
+  .fin:focus{border-color:var(--accent);}
+  textarea.fin{resize:vertical;min-height:70px;}
+  .fchecks{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-top:4px;}
+  .fchk{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--text);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;}
+  .fchk input{accent-color:var(--accent);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .btn-sec{font-family:'JetBrains Mono',monospace;font-size:.72rem;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.05em;}
+  .btn-sec:hover{border-color:var(--accent);color:var(--accent);}
+  a.btn-sec{text-decoration:none;display:inline-block;}
+
+  /* ── SOURCES ── */
+  .tag.src-ok{color:#7ddf9a;border-color:rgba(125,223,154,.3);}
+  .tag.src-warn{color:#f5a623;border-color:rgba(245,166,35,.4);}
+  .al.verify{color:var(--accent2);}
+  .contact-line{display:block;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#7ecde8;}
+  .contact-line a{color:#7ecde8;}
+  .tag.link-live{color:#7ddf9a;border-color:rgba(125,223,154,.35);}
+  .tag.link-dead{color:#e05a5a;border-color:rgba(224,90,90,.45);font-weight:500;}
+  .tag.new{background:rgba(0,212,170,.16);color:var(--accent);border-color:rgba(0,212,170,.45);font-weight:500;}
+
+  /* ── JOB DETAIL POPUP ── */
+  .jc{cursor:pointer;}
+  .d-note{font-size:.93rem;color:var(--text);line-height:1.65;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:12px 0;}
+  .d-rows{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;margin-bottom:14px;}
+  .d-label{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding-top:3px;white-space:nowrap;}
+  .d-val{font-size:.9rem;color:var(--text);line-height:1.5;}
+  a.add-btn{text-decoration:none;display:inline-block;}
+  a.tag{text-decoration:none;cursor:pointer;}
+  a.tag:hover{text-decoration:underline;}
+  .sec-h{font-family:'Archivo',sans-serif;font-size:1rem;font-weight:700;color:#fff;margin:20px 0 10px;}
+  .src-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 14px;}
+  .src-form .fin{flex:1;min-width:150px;}
+  .src-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+  .login-tag{font-family:'JetBrains Mono',monospace;font-size:.52rem;padding:2px 7px;border-radius:10px;background:rgba(91,156,246,.12);color:#5b9cf6;border:1px solid rgba(91,156,246,.25);text-transform:uppercase;letter-spacing:.05em;}
+  .src-card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+
+  /* ── PAGE: TRACKER ── */
+  .page{display:none;}
+  .page.active{display:block;}
+
+  /* ── PAGE: COMPANIES ── */
+  .company-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+  .company-card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px 16px;transition:border-color .12s;}
+  .company-card:hover{border-color:rgba(0,212,170,.35);}
+  .cc-name{font-family:'Archivo',sans-serif;font-size:1.05rem;font-weight:700;color:#fff;}
+  .cc-type{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+  .cc-roles{font-size:.85rem;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .cc-link{display:inline-block;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--accent);text-decoration:none;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
+  .cc-link:hover{opacity:1;text-decoration:underline;}
+  .cc-count{float:right;font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:2px 8px;border-radius:10px;background:rgba(0,212,170,.1);color:var(--accent);border:1px solid rgba(0,212,170,.2);}
+
+  /* ── PAGE: TIPS ── */
+  .tips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;}
+  .tip-card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:16px;}
+  .tip-card h3{font-family:'Archivo',sans-serif;font-size:1rem;font-weight:700;color:#fff;margin-bottom:6px;}
+  .tip-card p,.tip-card li{font-size:.85rem;color:var(--muted);line-height:1.6;}
+  .tip-card ul{padding-left:14px;margin-top:4px;}
+  .tip-label{font-family:'JetBrains Mono',monospace;font-size:.56rem;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px;}
+  .tip-label.hot{background:rgba(0,212,170,.12);color:var(--t1);border:1px solid rgba(0,212,170,.22);}
+  .tip-label.warn{background:rgba(245,166,35,.12);color:var(--accent2);border:1px solid rgba(245,166,35,.22);}
+  .tip-label.info{background:rgba(91,156,246,.12);color:var(--t2);border:1px solid rgba(91,156,246,.22);}
+</style>
+</head>
+<body>
+
+<div style="background:linear-gradient(90deg,rgba(0,212,170,.14),rgba(201,166,255,.14));border-bottom:1px solid var(--border);padding:9px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.06em;color:var(--accent)">🎬 DEMO SANDBOX — play with everything; changes stay in your browser only</div>
+<div class="header">
+  <div class="header-top">
+    <div class="hl">
+      <h1>Job <em>Targets</em> 2026</h1>
+      <p>Erik Neville · Senior SA / Pre-Sales SE · Remote or Greater Boston · Jul 17 2026</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="s-tot">50</div><div class="l">Roles</div></div>
+      <div class="stat"><div class="n" id="s-t1">—</div><div class="l">🔥 Strong</div></div>
+      <div class="stat"><div class="n" id="s-ne">—</div><div class="l">NE/Boston</div></div>
+      <div class="stat"><div class="n" id="s-rem">—</div><div class="l">Remote-ok</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="tab-bar">
+    <div class="sgroup" data-sg="jobs">
+      <div class="sg-h"><span class="chev">▾</span>Jobs</div>
+      <div class="sg-b">
+        <button class="tab active" data-tab="tracker">📋 All Jobs <span class="cnt" id="tc-all">—</span></button>
+        <button class="tab" data-tab="pipeline">📌 My Pipeline <span class="cnt" id="tc-pipe">—</span></button>
+        <button class="tab" data-tab="applied">✅ Applied <span class="cnt" id="tc-applied">—</span></button>
+        <button class="tab" data-tab="archive">🗄 Archive <span class="cnt" id="tc-arch">—</span></button>
+      </div>
+    </div>
+
+    <div class="sgroup" data-sg="filters">
+      <div class="sg-h"><span class="chev">▾</span>Filters <span class="sg-badge" id="filter-badge">0</span><button class="fb" id="clear-filters">✕ clear</button></div>
+      <div class="sg-b">
+    <div class="side-h2">Company</div>
+    <select class="fin" id="company-filter" style="font-size:.72rem;padding:7px 8px;margin:0 2px 2px">
+      <option value="">All companies</option>
+    </select>
+    <div class="side-h2">Fit</div>
+    <div class="chips" data-group="tier">
+      <button class="fb" data-val="1">🔥 Strong</button>
+      <button class="fb" data-val="2">✦ Good</button>
+      <button class="fb" data-val="3">◈ Stretch</button>
+    </div>
+    <div class="side-h2">Type</div>
+    <div class="chips" data-group="type">
+      <button class="fb" data-val="vendor">Vendor</button>
+      <button class="fb" data-val="var">VAR / MSP</button>
+    </div>
+    <div class="side-h2">Focus</div>
+    <div class="chips" data-group="focus">
+      <button class="fb" data-val="bcdr">BCDR</button>
+      <button class="fb" data-val="hci">HCI</button>
+      <button class="fb" data-val="storage">Storage</button>
+    </div>
+    <div class="side-h2">Location</div>
+    <div class="chips" data-group="loc">
+      <button class="fb" data-val="ne">NE / Boston</button>
+      <button class="fb" data-val="remote">Remote</button>
+    </div>
+    <div class="side-h2">Found</div>
+    <div class="chips" data-group="fresh" data-single="1">
+      <button class="fb active" data-val="all">Any</button>
+      <button class="fb" data-val="1">Today</button>
+      <button class="fb" data-val="3">3 days</button>
+      <button class="fb" data-val="7">Week</button>
+    </div>
+    <div class="side-h2">Link Check</div>
+    <div class="chips" data-group="live" data-single="1">
+      <button class="fb active" data-val="all">Any</button>
+      <button class="fb" data-val="live">✓ Verified live</button>
+    </div>
+    <div class="side-h2" id="ctag-h" style="display:none">My Tags</div>
+    <div class="chips" data-group="ctag"></div>
+      </div>
+    </div>
+
+    <div class="sgroup" data-sg="info">
+      <div class="sg-h"><span class="chev">▾</span>Resources</div>
+      <div class="sg-b">
+        <button class="tab" data-tab="companies">🏢 Companies</button>
+        <button class="tab" data-tab="sources">🔗 Sources</button>
+        <button class="tab" data-tab="tips">💡 Strategy</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+<div class="search-wrap">
+  <div class="search-box">
+    <span class="icon">🔍</span>
+    <input id="search" type="text" placeholder="Search jobs — title, company, keyword, tag…" autocomplete="off">
+  </div>
+  <button class="search-clear" id="search-clear">✕ Clear</button>
+  <select class="btn-sec" id="view-mode" title="What All Jobs shows">
+    <option value="review">View: To Review</option>
+    <option value="all">View: Everything</option>
+  </select>
+  <select class="btn-sec" id="page-size" title="Jobs per page">
+    <option value="12">12 / page</option>
+    <option value="24">24 / page</option>
+    <option value="48">48 / page</option>
+    <option value="0">All</option>
+  </select>
+  <button class="add-btn" id="add-job">＋ Add Job</button>
+  <button class="btn-sec" id="sync-btn" title="Sync your data across devices">☁ Sync</button>
+  <button class="btn-sec" id="research-btn" title="Run an on-demand AI research sweep for new jobs">🧠 Research</button>
+  <button class="btn-sec" id="profile-btn" title="Upload your resume to update the AI research criteria">📄 Profile</button>
+</div>
+
+<div class="body">
+
+  <!-- ALL JOBS / FILTERED VIEWS -->
+  <div class="page active" id="page-tracker">
+    <div class="notice">✓ <strong>Remote or Greater Boston only.</strong> Listings tagged <strong>⚠ aggregator</strong> came from a job board and can go stale — always click <strong>Verify on company site</strong> before applying. <strong>★ NEW</strong> marks jobs added by the latest research run. <a href="https://github.com/nevs55/JobSearch/actions/workflows/check-links.yml" target="_blank" style="color:var(--accent)">Run a manual link check →</a></div>
+    <div class="job-list" id="job-list"></div>
+  </div>
+
+  <div class="page" id="page-strong"></div>
+  <div class="page" id="page-pipeline"></div>
+  <div class="page" id="page-applied"></div>
+  <div class="page" id="page-archive"></div>
+  <div class="page" id="page-vendor"></div>
+  <div class="page" id="page-var"></div>
+  <div class="page" id="page-bcdr"></div>
+  <div class="page" id="page-hci"></div>
+  <div class="page" id="page-storage"></div>
+  <div class="page" id="page-ne"></div>
+
+  <!-- COMPANIES PAGE -->
+  <div class="page" id="page-companies">
+    <div class="fbar" style="margin-bottom:14px">
+      <input class="fin" id="co-name" placeholder="Company name(s) — comma-separate to add several" style="flex:2;min-width:220px">
+      <input class="fin" id="co-url" placeholder="Careers URL (optional)" style="flex:1;min-width:170px">
+      <button class="add-btn" data-act="addco">＋ Add Company</button>
+      <span class="flbl" id="co-msg" style="text-transform:none;letter-spacing:0"></span>
+    </div>
+    <div class="notice">All companies below have at least one confirmed open pre-sales SA / SE role matching your profile as of Jul 17 2026. Companies you add are watch-list entries synced to your account.</div>
+    <div class="company-grid" id="company-grid"></div>
+  </div>
+
+  <!-- SOURCES PAGE -->
+  <div class="page" id="page-sources">
+    <div id="sources-body"></div>
+  </div>
+
+  <!-- TIPS PAGE -->
+  <div class="page" id="page-tips">
+    <div class="tips-grid">
+      <div class="tip-card">
+        <span class="tip-label hot">Top 3 Apply Now</span>
+        <h3>Highest-probability roles this week</h3>
+        <ul>
+          <li><strong>SHI Strategic SE</strong> — JD is literally your resume. $160K–$260K remote. Apply at builtin.com/job/solutions-engineer-strategic/7458017</li>
+          <li><strong>Blue Mantis Presales Enterprise Architect</strong> — NE-based MSP, posted 3 weeks ago, widest vendor match. Apply at builtin.com/job/presales-enterprise-architect/9905256</li>
+          <li><strong>Nutanix SSE Boston/Hartford</strong> — Live Apply Now button, $165K–$248K. Your NCP cert is the differentiator. careers.nutanix.com/en/jobs/n2317</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label warn">Pure Storage Note</span>
+        <h3>Pure Storage rebranded to Everpure</h3>
+        <p>All Pure Storage job postings now appear under the Everpure brand on Greenhouse. The CT Enterprise SE role (job 8042530) is the only live NE-adjacent Pure/Everpure seat right now. The old "Systems Engineer, Commercial – MA" LinkedIn listing is closed — do not apply to it.</p>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label info">Rubrik Reality Check</span>
+        <h3>No NE commercial SE seats open</h3>
+        <p>Rubrik's careers page was fetched directly Jul 17 2026. US openings are CA, OH, NC, TX, and US-Remote Federal/AI only. No NE commercial SE seat exists today. Best current Rubrik path: GSI Global SA – Cognizant (US Remote) or set a job alert on rubrik.com/company/careers.</p>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label info">Veeam Strategy</span>
+        <h3>No NE SE seat — but pipeline is right</h3>
+        <p>Veeam's nearest US SE seat is MN (Jan 2026). Apply to it anyway — Veeam frequently reassigns territory post-hire for strong candidates. Also apply to the Lead Solutions Architect (Greenhouse 4856683101) which is architecture-heavy and remote. Set alert at careers.veeam.com for "Northeast" or "Massachusetts."</p>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label hot">Cert Leverage</span>
+        <h3>Certs that open doors right now</h3>
+        <ul>
+          <li><strong>NCP-MCI</strong> → Nutanix, ePlus, Presidio, SHI, BlackHawk Data — all list Nutanix as required</li>
+          <li><strong>Pure/Everpure FlashArray Architect Associate</strong> → Everpure SE roles, SHI Strategic SE, NetApp SE</li>
+          <li><strong>VCP-DCV</strong> → CDW, Presidio, ePlus, Blue Mantis, SHI SDDC SA</li>
+          <li><strong>AWS SAA-C03 (in progress)</strong> → Commvault Cloud SE, Cohesity SE, Dell Data Mgmt SE — all mention AWS</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label warn">Salary Ranges</span>
+        <h3>What these roles are paying in 2026</h3>
+        <ul>
+          <li>Nutanix SSE Boston: $165K–$248K</li>
+          <li>Everpure SE CT: $141K–$212K</li>
+          <li>HPE/Zerto PSE: $146K–$343K</li>
+          <li>SHI Strategic SE: $160K–$260K</li>
+          <li>Cohesity SA: $137K–$171K + equity</li>
+          <li>Veeam Sr. SSE: ~$150K–$200K est.</li>
+          <li>Commvault SE: ~$140K–$190K est.</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label info">Job Alert Setup</span>
+        <h3>Set these 5 alerts today</h3>
+        <ul>
+          <li><strong>careers.veeam.com</strong> → "Systems Engineer" + Northeast / Massachusetts</li>
+          <li><strong>rubrik.com/company/careers</strong> → "Sales Engineer" + United States</li>
+          <li><strong>careers.nutanix.com</strong> → "Systems Engineer" + Boston / New England</li>
+          <li><strong>careers.purestorage.com</strong> → "Systems Engineer" + Boston / Northeast</li>
+          <li><strong>presidio.com/careers</strong> → "Solutions Architect" + New England</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <span class="tip-label hot">VAR Approach</span>
+        <h3>How to work the VAR pipeline</h3>
+        <p>SHI, Blue Mantis, ePlus, Presidio, CDW, and Connection all hire from referrals and partner vendor relationships. If you know any AMs or SEs at these firms from past VAR work, reach out directly before applying cold — a warm intro jumps you ahead of the ATS queue at every one of these companies.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<div class="modal-overlay" id="detail-overlay">
+  <div class="modal" id="detail-body"></div>
+</div>
+
+<div class="modal-overlay" id="profile-overlay">
+  <div class="modal">
+    <h2>📄 Search Profile &amp; Resume</h2>
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:10px">The AI research runs read their search criteria from your profile. Upload your resume (PDF or text) and every future sweep — scheduled or 🧠 button — targets jobs matched to it.</p>
+    <div class="flab" style="margin-bottom:4px">CURRENT PROFILE</div>
+    <pre id="profile-current" style="font-size:.72rem;color:var(--muted);line-height:1.55;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;max-height:160px;overflow-y:auto;white-space:pre-wrap;margin-bottom:14px">Loading…</pre>
+    <div class="frow">
+      <div class="fcol">
+        <span class="flab">Upload Resume (.pdf / .txt / .md)</span>
+        <input class="fin" id="profile-file" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf">
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><span class="flab">Resume Text (extracted — review &amp; edit, or paste directly)</span><textarea class="fin" id="profile-text" style="min-height:130px" placeholder="Upload a file above, or paste your resume text here…"></textarea></div>
+    </div>
+    <p style="font-size:.74rem;min-height:1.2em;margin:4px 0" id="profile-status"></p>
+    <div class="modal-actions">
+      <button class="btn-sec" id="profile-cancel">Cancel</button>
+      <button class="add-btn" id="profile-save">Save Profile</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="gh-overlay">
+  <div class="modal">
+    <h2>🧠 One-Time Research Button Setup</h2>
+    <p style="font-size:.82rem;color:var(--muted);line-height:1.65;margin-bottom:12px">To let this button start an AI research run with one click, it needs a GitHub token that proves it's you (otherwise anyone visiting this page could burn your Claude usage). Takes 2 minutes, once:</p>
+    <ol style="font-size:.8rem;color:var(--text);line-height:1.8;padding-left:20px;margin-bottom:12px">
+      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--accent)">Open GitHub's new-token page →</a></li>
+      <li>Token name: <strong>job-tracker-button</strong> · Expiration: 90 days or more</li>
+      <li>Repository access: <strong>Only select repositories</strong> → <strong>nevs55/JobSearch</strong></li>
+      <li>Permissions → Repository permissions → <strong>Actions: Read and write</strong> and <strong>Contents: Read and write</strong></li>
+      <li>Click Generate token, copy it (<span style="font-family:'JetBrains Mono',monospace">github_pat_…</span>), paste below</li>
+    </ol>
+    <div class="frow"><div class="fcol"><span class="flab">GitHub Token</span><input class="fin" id="gh-token" type="password" placeholder="github_pat_…" autocomplete="off"></div></div>
+    <p style="font-size:.72rem;color:var(--muted);line-height:1.6;margin:6px 0">Stored only in this browser — never in the site code, never in your cloud sync or backups. Repeat this once per device you use the button from.</p>
+    <div class="modal-actions">
+      <button class="btn-sec" id="gh-cancel">Cancel</button>
+      <button class="add-btn" id="gh-save">Save &amp; Start Research</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sync-overlay">
+  <div class="modal">
+    <h2>☁ Cloud Sync</h2>
+    <div id="sync-out">
+      <p style="font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:14px">Sign in once per device and your archive, applied statuses, added jobs, and sources follow you everywhere — you stay signed in. First time here? Use “Email Me a Sign-In Link”, then set a password so future sign-ins are instant.</p>
+      <div class="frow">
+        <div class="fcol"><span class="flab">Email</span><input class="fin" id="sync-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="fcol"><span class="flab">Password</span><input class="fin" id="sync-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      </div>
+      <p style="font-size:.78rem;min-height:1.2em;margin:4px 0" id="sync-msg"></p>
+      <div class="modal-actions">
+        <button class="btn-sec" id="sync-close-out">Close</button>
+        <button class="btn-sec" id="sync-send">Email Me a Sign-In Link</button>
+        <button class="add-btn" id="sync-signin">Sign In</button>
+      </div>
+    </div>
+    <div id="sync-in" style="display:none">
+      <p style="font-size:.85rem;color:var(--text);margin-bottom:6px" id="sync-who"></p>
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:10px">Changes save to the cloud automatically. “Sync Now” pulls the latest from your other devices.</p>
+      <div class="frow">
+        <div class="fcol"><span class="flab">Set / Change Password — makes future sign-ins instant, no email needed</span><input class="fin" id="sync-newpass" type="password" placeholder="Choose a password (8+ characters)" autocomplete="new-password"></div>
+      </div>
+      <p style="font-size:.78rem;min-height:1.2em;margin:4px 0" id="sync-msg2"></p>
+      <div class="modal-actions">
+        <button class="btn-sec" id="sync-signout">Sign Out</button>
+        <button class="btn-sec" id="sync-setpass">Save Password</button>
+        <button class="btn-sec" id="sync-close-in">Close</button>
+        <button class="add-btn" id="sync-now">Sync Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2 id="modal-title">Add Job</h2>
+    <div class="frow" id="quick-row">
+      <div class="fcol" style="flex:1"><span class="flab">Paste the job link — details fill in automatically</span>
+        <div style="display:flex;gap:6px">
+          <input class="fin" id="f-quickurl" type="url" placeholder="https://…  (works best with the employer's own posting)" style="flex:1">
+          <button class="add-btn" id="f-fetch">✨ Fetch</button>
+        </div>
+        <span class="flab" id="f-fetch-msg" style="text-transform:none;letter-spacing:0;margin-top:4px;min-height:1em"></span>
+        <button class="btn-sec" id="f-manual" style="align-self:flex-start;margin-top:6px">…or fill in manually</button>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fcol" style="flex:2"><span class="flab">Job Title *</span><input class="fin" id="f-title" type="text" placeholder="e.g. Senior Solutions Architect"></div>
+      <div class="fcol"><span class="flab">Company *</span><input class="fin" id="f-co" type="text" placeholder="e.g. Nutanix"></div>
+    </div>
+    <div class="frow">
+      <div class="fcol" style="flex:2"><span class="flab">Apply / Listing URL</span><input class="fin" id="f-url" type="url" placeholder="https://…"></div>
+      <div class="fcol"><span class="flab">Fit</span>
+        <select class="fin" id="f-tier">
+          <option value="1">🔥 Strong</option>
+          <option value="2" selected>✦ Good</option>
+          <option value="3">◈ Stretch</option>
+        </select>
+      </div>
+      <div class="fcol" style="max-width:110px"><span class="flab">Match %</span><input class="fin" id="f-match" type="number" min="0" max="100" value="80"></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><span class="flab">Contact Name</span><input class="fin" id="f-contact" type="text" placeholder="e.g. Jane Smith — recruiter"></div>
+      <div class="fcol"><span class="flab">Contact Email</span><input class="fin" id="f-cemail" type="email" placeholder="jane@company.com"></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><span class="flab">Type & Location</span>
+        <div class="fchecks">
+          <label class="fchk"><input type="radio" name="f-type" value="vendor" checked> Vendor</label>
+          <label class="fchk"><input type="radio" name="f-type" value="var"> VAR/MSP</label>
+          <label class="fchk"><input type="checkbox" id="f-remote" checked> Remote</label>
+          <label class="fchk"><input type="checkbox" id="f-ne"> NE/Boston</label>
+        </div>
+      </div>
+      <div class="fcol"><span class="flab">Focus</span>
+        <div class="fchecks">
+          <label class="fchk"><input type="checkbox" id="f-bcdr"> BCDR</label>
+          <label class="fchk"><input type="checkbox" id="f-hci"> HCI</label>
+          <label class="fchk"><input type="checkbox" id="f-storage"> Storage</label>
+        </div>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><span class="flab">My Tags <span style="text-transform:none;color:var(--muted)">(comma-separated)</span></span><input class="fin" id="f-ctags" type="text" placeholder="e.g. referral, follow up, dream job"></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><span class="flab">Notes</span><textarea class="fin" id="f-note" placeholder="Why this role, comp range, next steps…"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" id="modal-cancel">Cancel</button>
+      <button class="add-btn" id="modal-save">Save Job</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const J=[
+{r:1,t:"Systems Sales Engineer – Boston/Hartford",co:"Nutanix",tier:1,tags:["vendor","hci","ne"],remote:true,m:94,note:"CLOSED — posting n2317 returns 404 as of Jul 18 2026 (user-confirmed in browser; Nutanix blocks automated checks). Was: Boston/Hartford territory, $165K–$248K pre-sales trusted advisor role. Watch careers.nutanix.com for a repost — your NCP cert remains the differentiator.",url:"https://careers.nutanix.com/en/jobs/n2317/systems-sales-engineer/",src:"Closed: 404 confirmed Jul 18 2026",added:"2026-07-17"},
+{r:2,t:"Sr. Pre-Sales SE, Enterprise – Connecticut",co:"Everpure (fmr. Pure Storage)",tier:1,tags:["vendor","storage","ne"],remote:true,m:93,note:"Confirmed live on Greenhouse (8042530), active Apply form, no deadline. Remote CT, NE enterprise accounts. $141K–$212K. 5+ yrs storage pre-sales, FC/iSCSI/NAS/SAN. Your FlashArray cert is the differentiator.",url:"https://job-boards.greenhouse.io/purestorage/jobs/8042530",src:"Verified: greenhouse.io/purestorage/8042530",added:"2026-07-17"},
+{r:3,t:"Senior Solutions Architect – Databases & Cyber Resilience",co:"Commvault",tier:1,tags:["vendor","bcdr"],remote:true,m:91,note:"Live on Commvault careers (R0013153). US Remote overlay specialist for BCDR/database engagements. Pre-sales heavy. Your Veeam/Rubrik/Commvault cross-stack depth is the exact ask.",url:"https://www.commvault.com/careers/jobs/5231304008",src:"Verified: commvault.com R0013153",added:"2026-07-17"},
+{r:4,t:"Strategic SaaS Sales Engineer – Remote USA East",co:"Commvault",tier:1,tags:["vendor","bcdr"],remote:true,m:88,note:"Live (R0013114). Remote US East. Pre-sales SE for Commvault Cloud SaaS — ransomware recovery, cyber resilience. East coverage aligns to your territory.",url:"https://www.commvault.com/careers/jobs/5205867008",src:"Verified: commvault.com R0013114",added:"2026-07-17"},
+{r:5,t:"Sales Engineer – MD/VA/DC (nearest live Commvault SE seat)",co:"Commvault",tier:1,tags:["vendor","bcdr"],remote:true,m:84,note:"CLOSED — page now renders \"job not found\" as of Jul 20 2026. Was: Remote MD/VA/DC pre-sales SE (R0013235). Watch commvault.com/careers/jobs for a repost.",url:"https://www.commvault.com/careers/jobs/5250158008",src:"Closed: \"job not found\" confirmed Jul 20 2026",added:"2026-07-17"},
+{r:6,t:"Sr. Sales Systems Engineer – Minnesota (nearest live Veeam US SE)",co:"Veeam",tier:1,tags:["vendor","bcdr"],remote:true,m:85,note:"CLOSED — posting returns 404 as of Jul 20 2026. Was: Remote MN enterprise pre-sales SE, cyber recovery. Watch careers.veeam.com for a repost.",url:"https://careers.veeam.com/job/minnesota/sr-sales-systems-engineer-minnesota/22681/90929503392",src:"Closed: 404 confirmed Jul 20 2026",added:"2026-07-17"},
+{r:7,t:"Lead Solutions Architect (Pre-Sales)",co:"Veeam",tier:1,tags:["vendor","bcdr"],remote:true,m:83,note:"CLOSED — Greenhouse API returns 404 as of Jul 20 2026. Was: pre/post-sales architect bridging field SE and product. Watch careers.veeam.com for a repost.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4856683101",src:"Closed: Greenhouse API 404 confirmed Jul 20 2026",added:"2026-07-17"},
+{r:8,t:"Sr. Sales Systems Engineer – Texas (remote, adjacent listing)",co:"Veeam",tier:2,tags:["vendor","bcdr"],remote:true,m:79,note:"Confirmed live Greenhouse (4851373101). Remote TX. Same enterprise SE JD — VMware, Hyper-V, Nutanix AHV, storage, cyber recovery. Apply to get in Veeam pipeline and request territory conversation.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4851373101",src:"Verified: greenhouse.io/veeamsoftware/4851373101",added:"2026-07-17"},
+{r:9,t:"Senior Sales Engineer – Connecticut (Remote)",co:"Cohesity",tier:1,tags:["vendor","bcdr","ne"],remote:true,m:88,note:"Confirmed live on Cohesity's own Workday board (R04172). Remote from Connecticut, OTE $190,400–$238,000. SE drives POCs, demos, workshops. Your cross-stack BCDR depth (Veeam + Rubrik + Cohesity) differentiates you from single-vendor candidates.",url:"https://cohesity.wd5.myworkdayjobs.com/Cohesity_Careers/job/USA---Connecticut---Remote/Senior-Sales-Engineer_R04172",src:"Verified 2026-07-18: Workday cxs API cohesity.wd5.myworkdayjobs.com R04172 (200, live)",added:"2026-07-17"},
+{r:10,t:"Solutions Architect – Phoenix Metro (Remote)",co:"Cohesity",tier:1,tags:["vendor","bcdr"],remote:true,m:84,note:"Confirmed live on Cohesity's own Workday board (R03868), $137,360–$171,700 + equity. Uncover new opportunities, POCs, architecture workshops. Post-Veritas merger expanded their SE team.",url:"https://cohesity.wd5.myworkdayjobs.com/Cohesity_Careers/job/Phoenix-Metro-Area---Arizona---USA-Remote/Solutions-Architect_R03868",src:"Verified 2026-07-18: Workday cxs API cohesity.wd5.myworkdayjobs.com R03868 (200, live)",added:"2026-07-17"},
+{r:11,t:"Sr. SE, UDS Data Management – East (Remote Massachusetts)",co:"Dell Technologies",tier:1,tags:["vendor","storage","ne"],remote:true,m:87,note:"Confirmed live on Dell Workday (R285911), Remote Massachusetts explicitly listed, posted Apr 2026. Pre-sales SE supporting field sales on data management, unstructured storage, hybrid cloud.",url:"https://dell.wd1.myworkdayjobs.com/external/job/remote---massachusetts-united-states/senior-systems-engineer--uds-data-management---east_r285911",src:"Verified: dell.wd1.myworkdayjobs.com R285911",added:"2026-07-17"},
+{r:12,t:"Zerto Pre Sales Engineer – Remote US",co:"HPE / Zerto",tier:3,tags:["vendor","bcdr"],remote:true,m:86,note:"CLOSED — job 1191961 returns 410 Gone as of Jul 19 2026 (confirmed on careers.hpe.com and the Workday mirror). Was: Remote/Teleworker DR/data-protection pre-sales, $146K–$343K. Watch careers.hpe.com for a Zerto repost.",url:"https://hpe.wd5.myworkdayjobs.com/ACJobSite/job/Los-Angeles-California/Zerto-Pre-Sales-Engineer_1191961",src:"Closed: 410 Gone confirmed Jul 19 2026",added:"2026-07-17"},
+{r:13,t:"Sr. GSI Global Solutions Architect – Cognizant",co:"Rubrik",tier:2,tags:["vendor","bcdr"],remote:true,m:80,note:"Confirmed live on Rubrik careers (US Remote). GSI overlay SA supporting Cognizant partnership. Best currently available Rubrik option — no direct NE commercial SE seat open today.",url:"https://www.rubrik.com/company/careers/departments/job.7405650.73920?reqId=10116",src:"Verified: rubrik.com/careers",added:"2026-07-17"},
+{r:14,t:"Sr. Sales Engineer – Federal (US Remote)",co:"Rubrik",tier:3,tags:["vendor","bcdr"],remote:true,m:68,note:"Confirmed live on Rubrik careers. Verify clearance requirements. If clearance-free, your BCDR depth is a strong fit. No direct commercial NE seat open.",url:"https://www.rubrik.com/company/careers/departments/job.7375599.73920?reqId=10006",src:"Verified: rubrik.com/careers",added:"2026-07-17"},
+{r:15,t:"Sr. Sales Engineer – Healthcare – NC (remote-eligible)",co:"Rubrik",tier:2,tags:["vendor","bcdr"],remote:true,m:74,note:"Confirmed live on Rubrik careers (NC). Healthcare vertical SE. Remote-eligible. Healthcare vertical from VAR days is relevant.",url:"https://www.rubrik.com/company/careers/departments/job.7962991.73920?reqId=11001",src:"Verified: rubrik.com/careers",added:"2026-07-17"},
+{r:16,t:"Sales Engineer – SaaS Specialist (multi-state remote)",co:"Rubrik",tier:2,tags:["vendor","bcdr"],remote:true,m:72,note:"Confirmed live on Rubrik careers (AZ/CA/CO/NV/OR/UT/WA). SaaS data protection SE — M365, Google Workspace, Salesforce backup. Adjacent to your BCDR background.",url:"https://www.rubrik.com/company/careers/departments/job.7871817.73920?reqId=10907",src:"Verified: rubrik.com/careers",added:"2026-07-17"},
+{r:17,t:"Sr. Senior SE, Federal/DOD – Remote DC/MD/VA",co:"Veeam",tier:2,tags:["vendor","bcdr"],remote:true,m:76,note:"Confirmed live careers.veeam.com (posted Apr 25 2026). Remote DC/MD/VA. Verify clearance. Strong Veeam + BCDR background is a match.",url:"https://careers.veeam.com/job/united-states/sr-systems-engineer-federal-dod-remote-dc-md-va/22681/94357113856",src:"Verified: careers.veeam.com Apr 2026",added:"2026-07-17"},
+{r:18,t:"Senior Solutions Engineer – Washington D.C. (remote, East-adjacent)",co:"NetApp",tier:2,tags:["vendor","storage"],remote:true,m:80,note:"CLOSED — posting returns 404 as of Jul 20 2026. Was: Remote DC pre-sales SE, storage architecture. Watch careers.netapp.com for a repost.",url:"https://careers.netapp.com/job/united-states/senior-solutions-engineer-washington-d-c/27600/91063176240",src:"Closed: 404 confirmed Jul 20 2026",added:"2026-07-17"},
+{r:19,t:"Enterprise Solutions Engineer – Atlanta (remote-eligible)",co:"NetApp",tier:2,tags:["vendor","storage"],remote:true,m:77,note:"Confirmed live on NetApp Careers. Remote Atlanta. Same pre-sales SE JD. Storage architecture, partner channel engagement. Monitor for explicit NE posting.",url:"https://careers.netapp.com/job/atlanta/enterprise-solutions-engineer-atlanta/27600/95672036736",src:"Verified: careers.netapp.com",added:"2026-07-17"},
+{r:21,t:"Sr. Pre-Sales SE, SLED – NJ",co:"Everpure (fmr. Pure Storage)",tier:2,tags:["vendor","storage"],remote:true,m:77,note:"CLOSED — Greenhouse API returns 404 as of Jul 20 2026. Was: Remote NJ SLED pre-sales SE. Watch job-boards.greenhouse.io/purestorage for a repost.",url:"https://job-boards.greenhouse.io/purestorage/jobs/7776197",src:"Closed: Greenhouse API 404 confirmed Jul 20 2026",added:"2026-07-17"},
+{r:22,t:"Sr. Pre-Sales SE, Enterprise – Baltimore/DC",co:"Everpure (fmr. Pure Storage)",tier:3,tags:["vendor","storage"],remote:true,m:71,note:"CLOSED — Greenhouse API returns 404 as of Jul 20 2026. Was: Remote Baltimore/DC pre-sales SE, geographic fallback for the CT role. Watch job-boards.greenhouse.io/purestorage for a repost.",url:"https://job-boards.greenhouse.io/purestorage/jobs/6604404",src:"Closed: Greenhouse API 404 confirmed Jul 20 2026",added:"2026-07-17"},
+{r:23,t:"Solutions Engineer – Boston (pre-sales, networking)",co:"Cisco",tier:2,tags:["vendor","ne"],remote:false,m:73,note:"CLOSED — posting returns 410 Gone as of Jul 20 2026. Cisco's Workday keyword search for Boston/Massachusetts now returns no Sales/Solutions Engineer openings. Watch careers.cisco.com for a repost.",url:"https://careers.cisco.com/global/en/job/CISCISGLOBAL2017907EXTERNALENGLOBAL/Solutions-Engineer",src:"Closed: 410 Gone confirmed Jul 20 2026",added:"2026-07-17"},
+{r:24,t:"National Partner Business Manager – Insight",co:"Commvault",tier:3,tags:["vendor","bcdr","var"],remote:true,m:67,note:"CLOSED — page now renders \"job not found\" as of Jul 20 2026. Was: partner/channel BDM (R0013362). Watch commvault.com/careers/jobs for a repost.",url:"https://www.commvault.com/careers/jobs/5342664008",src:"Closed: \"job not found\" confirmed Jul 20 2026",added:"2026-07-17"},
+{r:25,t:"Cloud Resilience AE – East (MA/FL/GA/IL/NY/NC)",co:"Commvault",tier:3,tags:["vendor","bcdr"],remote:true,m:68,note:"Live (R0013035). AE selling Commvault Cloud SaaS, Massachusetts in territory list. AE pivot — your technical BCDR credibility shortens ramp dramatically.",url:"https://www.commvault.com/careers/jobs/5194244008",src:"Verified: commvault.com R0013035",added:"2026-07-17"},
+// VAR/MSP
+{r:26,t:"Solutions Engineer – Global (Houston, TX office)",co:"SHI International",tier:3,tags:["var","storage","bcdr","hci"],remote:false,m:58,note:"Confirmed live on SHI's own Workday board (JR2472-1) but reposted as office-based Houston, TX — no longer remote, fails your Remote-US/NE location criterion. Comp still matches original BuiltIn listing ($160K–$260K OTE). Same core Dell/NetApp/HPE/Cisco/Pure/Veeam/Nutanix JD. Deprioritized versus SHI's remote seats below.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/Houston-TX-USA/Solutions-Engineer---Strategic_JR2472-1",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2472-1 (200, live, Houston TX)",added:"2026-07-17"},
+{r:27,t:"Enterprise Solutions Engineer – Boston (MA Home Office)",co:"SHI International",tier:1,tags:["var","storage","bcdr","hci","ne"],remote:true,m:92,note:"Confirmed live on SHI's own Workday board (JR1017-1), US-MA Home Office, base $112K–$182K / OTE $160K–$260K. Identical JD: Dell, NetApp, HPE, Cisco, Pure, AWS, Veeam, Nutanix, BCDR, HCI, SDDC. Your 20+ yr background hits every checkbox.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/US---MA---Home-Office/Enterprise-Solutions-Engineer--Boston_JR1017-1",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR1017-1 (200, live, MA Home Office)",added:"2026-07-17"},
+{r:28,t:"Solutions Engineer – Commercial (Austin, TX office)",co:"SHI International",tier:3,tags:["var","storage","bcdr","hci"],remote:false,m:52,note:"Confirmed live on SHI's own Workday board (JR2638-2) but reposted as office-based Austin, TX ($100K–$140K) — no longer remote, fails your location criterion. Same multi-vendor stack as Strategic SE but commercial segment.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/Austin-TX-USA/Solutions-Engineer---Commercial_JR2638-2",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2638-2 (200, live, Austin TX)",added:"2026-07-17"},
+{r:29,t:"Presales Solutions Engineer – Data Protection – Remote",co:"SHI International",tier:1,tags:["var","bcdr","storage"],remote:true,m:88,note:"Confirmed live on SHI's own Workday board (JR2478-1), US-Remote, $120K–$230K (may occasionally report to Austin, TX office). Consultative BCDR pre-sales SE — Rubrik, Cohesity, Veeam, Commvault stack. Your full BCDR toolkit is the JD.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/US---Remote/Presales-Solutions-Engineer---Data-Protection_JR2478-1",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2478-1 (200, live, US-Remote)",added:"2026-07-17"},
+{r:30,t:"Presales Solutions Architect – Platforms – Remote",co:"SHI International",tier:2,tags:["var","hci"],remote:true,m:76,note:"Confirmed live on SHI's own Workday board (JR2779-1), US-Remote, $180K–$250K (may occasionally report to Austin, TX office). Container, automation, hybrid cloud platform architecture. Your HCI background is relevant; container/DevOps is the stretch.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/US---Remote/Presales-Solutions-Architect---Platforms_JR2779-1",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2779-1 (200, live, US-Remote)",added:"2026-07-17"},
+{r:31,t:"Sr. Solutions Architect – SDDC – Remote (post-sales delivery)",co:"SHI International",tier:3,tags:["var","hci","storage"],remote:true,m:62,note:"Confirmed live on SHI's own Workday board (JR2715-2), US-Remote Home Office. Actual JD is post-sales implementation/delivery (low-level design, hands-on deployment, mentoring), not pre-sales — lower priority than SHI's pre-sales SA/SE seats. VMware/NSX/vSAN/HCI stack still matches your VCP background.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/US---Remote/Sr-Solutions-Architect---SDDC_JR2715-2",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2715-2 (200, live) — JD confirmed post-sales delivery role",added:"2026-07-17"},
+{r:32,t:"Presales Enterprise Architect – Remote",co:"Blue Mantis",tier:1,tags:["var","ne","bcdr","hci","storage"],remote:true,m:93,note:"Confirmed live on Blue Mantis's own Pinpoint careers board, $180K–$200K, fully remote. NE-based MSP/VAR. Enterprise presales architecture — Cisco, Palo Alto, Fortinet, Juniper, Aruba, Dell, VMware, Nutanix, Pure Storage, hybrid cloud, BCDR, compliance. Lowest-friction play on this list.",url:"https://bluemantis.pinpointhq.com/en/postings/dc11ea03-4d81-4064-ad75-a761ba8ffcc8",src:"Verified 2026-07-18: bluemantis.pinpointhq.com postings API (live, $180K-$200K)",added:"2026-07-17"},
+{r:33,t:"Solutions Architect – BCDR / Cyber Resilience – NE",co:"Presidio (NE Region)",tier:1,tags:["var","bcdr","ne"],remote:true,m:89,note:"Presidio NE actively hiring BCDR SA post-Broadcom VMware disruption. Direct apply at presidio.com/careers. Rubrik, Veeam, Cohesity alignment.",url:"https://www.presidio.com/careers",src:"Apply direct: presidio.com/careers",added:"2026-07-17"},
+{r:34,t:"Sr. SA, Datacenter/Cloud – MI/OH/IN (remote-eligible)",co:"Presidio",tier:2,tags:["var","hci","storage","bcdr"],remote:true,m:80,note:"Now resolved: confirmed live on Presidio's own UltiPro board (Req SRSOL009778, posted 2026-07-08), Columbus OH / Indianapolis IN / Michigan. Pre-sales SA selling/architecting compute, storage, virtualization, cloud across Dell, NetApp, Cisco, VMware, Nutanix, AWS, Azure — an almost exact vendor-stack match to your cert/experience list. Not Northeast, but strong tech fit; see NE-region Presidio SA listings (r60, r72) for better-located alternatives at the same company.",url:"https://recruiting.ultipro.com/PRE1019PRSD/JobBoard/4c05f321-903e-43d5-a4c0-5d9dd55dc34d/OpportunityDetail?opportunityId=ddd7db99-be79-4b2f-acca-ac56ee38634e",src:"Verified 2026-07-18: Presidio UltiPro job-board API (live, 200) — resolves the direct link that was unresolved earlier today",added:"2026-07-17"},
+{r:35,t:"Solutions Architect – VMware / HCI – NE",co:"ePlus Technology (NE)",tier:1,tags:["var","hci","ne"],remote:true,m:87,note:"ePlus NE actively hiring HCI/infra SAs. Post-Broadcom disruption accelerating demand. Direct apply at eplus.com/careers. Your NCP, VCP, and VAR background hits every checkbox.",url:"https://www.eplus.com/careers",src:"Apply direct: eplus.com/careers",added:"2026-07-17"},
+{r:37,t:"Senior Solution Architect (Pre-Sales Engineering)",co:"BlackHawk Data",tier:3,tags:["var","ne"],remote:false,m:60,note:"Re-verified 2026-07-20: posting rewritten — now Hybrid in NYC office (no longer remote), reporting to CTO, department retitled Pre-Sales Engineering. Scope shifted entirely to networking/cybersecurity (NGFW, SASE, ZTNA, Cisco/Palo Alto/Fortinet/Zscaler) with no storage/BCDR/HCI/Nutanix/VMware content — a stretch from your core, though your VAR SA/BOM/SOW background still applies.",url:"https://blackhawkdatallc12029.applytojob.com/apply/jobs/details/n3mI6Mn2uO",src:"Re-verified 2026-07-20: blackhawkdatallc12029.applytojob.com job detail (200, content changed, now security/networking + Hybrid NYC)",added:"2026-07-17"},
+{r:38,t:"Field Solution Architect – Remote US",co:"Connection (PC Connection)",tier:2,tags:["var","ne","hci","storage"],remote:true,m:79,note:"Now resolved to a live posting: confirmed on Connection's own iCIMS board (job 10072), Remote, United States. NH-HQ'd VAR — pre-sales SA core competencies in Cloud, SaaS, Security, and Virtualization. No salary listed.",url:"https://careers-connection.icims.com/jobs/10072/field-solution-architect/job",src:"Verified 2026-07-18: careers-connection.icims.com/jobs/10072 (200, live) — replaces prior apply-direct fallback",added:"2026-07-17"},
+{r:39,t:"Solutions Architect – Boston / NE",co:"Thrive (MSP)",tier:2,tags:["var","ne","bcdr"],remote:true,m:76,note:"Boston-area MSP with growing BCDR practice. Remote-capable SA roles. Apply at thrivecloud.com/careers. Rubrik, Veeam, Nutanix alignment matches your background.",url:"https://thrivecloud.com/careers",src:"Apply direct: thrivecloud.com/careers",added:"2026-07-17"},
+{r:42,t:"Sr. Solutions Architect – SHI Labs / Cybersecurity (Somerset, NJ office)",co:"SHI International",tier:3,tags:["var","bcdr"],remote:false,m:55,note:"Confirmed live on SHI's own Workday board (JR2926), $180K–$260K, but based in Somerset, NJ with no remote language — fails your location criterion. SHI Labs internal practice evaluates cybersecurity and data protection offerings; your BCDR + ransomware recovery depth is still relevant if relocation/commute is workable.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/Somerset-NJ-USA/Sr-Solutions-Architect---SHI-Labs---Cybersecurity_JR2926",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2926 (200, live, Somerset NJ)",added:"2026-07-17"},
+// remaining fills
+{r:43,t:"Technical Account Manager – Enterprise",co:"Nutanix",tier:2,tags:["vendor","hci","ne"],remote:true,m:78,note:"Active on Nutanix Careers. TAM role — post-sales but architecture-heavy. Boston/NE territory. Your NCP + field delivery makes you credible at the table in a way most TAMs aren't.",url:"https://careers.nutanix.com",src:"Apply direct: careers.nutanix.com",added:"2026-07-17"},
+{r:44,t:"MSP Account Executive – Remote US",co:"Commvault",tier:3,tags:["vendor","bcdr","var"],remote:true,m:68,note:"Live (R0013191). AE-track. Your VAR/MSP background and BCDR depth makes the hybrid AE/SA motion at Commvault MSP worth considering.",url:"https://www.commvault.com/careers/jobs/5238644008",src:"Verified: commvault.com R0013191",added:"2026-07-17"},
+{r:45,t:"Federal Account Executive – Remote US",co:"Commvault",tier:3,tags:["vendor","bcdr"],remote:true,m:66,note:"CLOSED — page now renders \"job not found\" as of Jul 20 2026. Was: AE-track, federal (R0013151). Watch commvault.com/careers/jobs for a repost.",url:"https://www.commvault.com/careers/jobs/5250777008",src:"Closed: \"job not found\" confirmed Jul 20 2026",added:"2026-07-17"},
+{r:47,t:"Sr. Sales Engineer – Ohio / Strategic – Remote",co:"Rubrik",tier:2,tags:["vendor","bcdr"],remote:true,m:73,note:"Confirmed live on Rubrik careers (OH). Remote strategic accounts SE. No NE commercial seat open but strong BCDR fit. Apply to build relationship with Rubrik recruiting team.",url:"https://www.rubrik.com/company/careers/departments/job.7826311.73920?reqId=10877",src:"Verified: rubrik.com/careers — OH listing",added:"2026-07-17"},
+{r:48,t:"Presales Solutions Engineer – Network (DC Metro Home Office)",co:"SHI International",tier:2,tags:["var"],remote:true,m:74,note:"Confirmed live on SHI's own Workday board (JR2385), $120K–$230K. Remote with Home Office setup, tied to the Washington DC metro area (SHI posts this role per-metro; DC is the nearest live req). Networking-focused presales SE — Cisco, Palo Alto, SD-WAN. Secondary fit given networking depth from VAR days.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/US---DC---Home-Office/Presales-Solutions-Engineer---Network_JR2385",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2385 (200, live, DC Home Office)",added:"2026-07-17"},
+{r:50,t:"Solutions Architect – BCDR / MSP – Remote",co:"WWT / World Wide Technology",tier:2,tags:["var","bcdr"],remote:true,m:72,note:"WWT has a strong Veeam/Cohesity/Rubrik practice and remote SA roles. More central-US focused but roles are remote-eligible. Monitor wwt.com/careers for BCDR SA postings.",url:"https://www.wwt.com/careers",src:"Apply direct: wwt.com/careers",added:"2026-07-17"},
+// added 2026-07-18
+{r:51,t:"Senior Pre-Sales Systems Engineer, Everpure Protect",co:"Everpure (fmr. Pure Storage)",tier:1,tags:["vendor","bcdr","storage","ne"],remote:true,m:93,note:"Confirmed live on Greenhouse (7761477). Boston, MA is an explicit base location option (also Chicago/NY/Philly/Remote-DC/Santa Clara). Pre-sales SE for Everpure Protect, Pure's cyber-resilience/data-protection line. Your FlashArray cert plus BCDR depth is the exact ask.",url:"https://job-boards.greenhouse.io/purestorage/jobs/7761477",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/purestorage/7761477 (200)",added:"2026-07-18"},
+{r:52,t:"Senior Sales Engineer – Data & AI Security",co:"Veeam",tier:1,tags:["vendor","bcdr","ne"],remote:true,m:90,note:"Confirmed live on Greenhouse (4814368101). Remote Massachusetts explicitly listed. Pre-sales SE covering Veeam's data & AI security/cyber-resilience portfolio. Direct match to your Veeam depth and MA location.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4814368101",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/veeamsoftware/4814368101 (200)",added:"2026-07-18"},
+{r:53,t:"Sales Systems Engineer, Commercial",co:"Veeam",tier:2,tags:["vendor","bcdr"],remote:true,m:80,note:"Confirmed live on Greenhouse (4918713101). Remote US, commercial segment pre-sales SE. Same core Veeam SE JD as your target roles — data protection, cyber recovery demos and POCs.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4918713101",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/veeamsoftware/4918713101 (200)",added:"2026-07-18"},
+{r:54,t:"Senior Sales Systems Engineer, VDC M365",co:"Veeam",tier:2,tags:["vendor","bcdr"],remote:true,m:73,note:"Confirmed live on Greenhouse (4895608101). Remote US. SaaS backup specialist (M365) pre-sales SE — narrower product scope than your generalist BCDR background but same Veeam SE motion.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4895608101",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/veeamsoftware/4895608101 (200)",added:"2026-07-18"},
+{r:55,t:"Technical Account Manager",co:"Veeam",tier:2,tags:["vendor","bcdr"],remote:true,m:76,note:"Confirmed live on Greenhouse (4744030101). Remote US. Post-sales TAM role but architecture-heavy customer engagement; your Veeam pre-sales depth carries directly into a TAM seat.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4744030101",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/veeamsoftware/4744030101 (200)",added:"2026-07-18"},
+{r:56,t:"Senior Systems Engineer, Kasten",co:"Veeam",tier:3,tags:["vendor","bcdr"],remote:true,m:65,note:"Confirmed live on Greenhouse (4910155101). Remote US. Kubernetes-native backup pre-sales SE (Kasten by Veeam) — cloud-native/K8s is a stretch relative to your traditional infra background, but same Veeam SE track.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4910155101",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/veeamsoftware/4910155101 (200)",added:"2026-07-18"},
+{r:57,t:"Technical Partner Manager (Sales Engineer) – Chicago/NYC Metro",co:"Veeam",tier:3,tags:["vendor","bcdr"],remote:true,m:63,note:"Confirmed live on Greenhouse (4844590101). Remote US flag but title targets Chicago/NYC metro partners. Channel-facing SE role, not core end-customer pre-sales — lower priority than other Veeam seats.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4844590101",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/veeamsoftware/4844590101 (200)",added:"2026-07-18"},
+{r:58,t:"Consulting Architect – EUC",co:"Nutanix",tier:2,tags:["vendor","hci"],remote:true,m:75,note:"Confirmed live on Nutanix Careers (job 31797), $160K–$227K. Remote US. Requires 10+ yrs virtualization (VMware/KVM/Hyper-V) and EUC (Citrix/Omnissa) — your VCP and Nutanix depth applies, EUC specialization is the stretch.",url:"https://careers.nutanix.com/en/jobs/31797/consulting-architect-euc/",src:"Verified 2026-07-18: careers.nutanix.com/31797 (fetched, open for applications)",added:"2026-07-18"},
+{r:59,t:"Solution Architect Team Lead – Cisco Data Center",co:"CDW",tier:1,tags:["var"],remote:true,m:87,note:"Live on CDW's own career site (job 16035349), corroborated across BuiltIn Boston/LinkedIn/Remotive. Remote US. Senior technical leadership over Cisco UCS/Nexus/MDS datacenter portfolio, mentors SAs. $110K–$162K + $30K bonus target. Your Cisco UCS depth is the exact ask.",url:"https://www.cdwjobs.com/jobs/16035349-solution-architect-team-lead-cisco-data-center",src:"Verified 2026-07-18: cdwjobs.com/16035349, corroborated via BuiltIn Boston + LinkedIn + Remotive listings",added:"2026-07-18"},
+// added 2026-07-18 (new market research)
+{r:60,t:"Sr. Solutions Architect – Data Center, Cloud Compute – Woburn, MA (NE Region)",co:"Presidio",tier:1,tags:["var","ne","hci","storage","bcdr"],remote:true,m:90,note:"Live on Presidio's own UltiPro board per their job-board API (posted ~2026-07-10), corroborated by matching Snagajob/LinkedIn mirrors dated the same week. Based out of Woburn, MA — mostly customer-site/remote work, not daily office. Pre-sales SA for data center and hybrid cloud (Dell-EMC, AWS, Cisco, VMware). Direct match to your NE territory and multi-vendor background.",url:"https://recruiting.ultipro.com/PRE1019PRSD/JobBoard/4c05f321-903e-43d5-a4c0-5d9dd55dc34d/OpportunityDetail?opportunityId=18322a8b-d93d-4f9e-bf92-be2b50bd7c0a",src:"Verified 2026-07-18: Presidio UltiPro job-board API (live) + corroborating Snagajob/LinkedIn mirrors",added:"2026-07-18"},
+{r:61,t:"SR Field Solutions Architect – Remote",co:"CDW",tier:2,tags:["var","storage"],remote:true,m:78,note:"Confirmed live on CDW's own Workday board. Remote USA. Senior field pre-sales SA generalist role — multi-vendor infrastructure design, similar motion to your VAR pre-sales background.",url:"https://cdw.wd5.myworkdayjobs.com/Careers/job/Remote--USA/SR-FSA_R25_00003515",src:"Verified 2026-07-18: Workday cxs API cdw.wd5.myworkdayjobs.com R25_00003515 (200, live)",added:"2026-07-18"},
+{r:62,t:"Consulting Solution Architect – Managed Services – Remote",co:"CDW",tier:3,tags:["var"],remote:true,m:66,note:"Confirmed live on CDW's own Workday board. Remote USA. Managed-services consulting SA — more delivery/consulting-oriented than classic pre-sales, but multi-vendor infrastructure scope overlaps your background.",url:"https://cdw.wd5.myworkdayjobs.com/Careers/job/Remote--USA/Consulting-Solution-Architect---Managed-Services_R25_00003710",src:"Verified 2026-07-18: Workday cxs API cdw.wd5.myworkdayjobs.com R25_00003710 (200, live)",added:"2026-07-18"},
+{r:63,t:"Solutions Architect – VMware – Remote",co:"SHI International",tier:1,tags:["var","hci"],remote:true,m:89,note:"Confirmed live on SHI's own Workday board (JR2730), US-Remote, $190K–$250K. VMware-focused pre-sales SA — virtualization, SDDC, hybrid cloud. Your VCP cert and VMware depth are the exact ask.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/US---Remote/ASG-Solutions-Architect---VMWare_JR2730",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2730 (200, live, US-Remote)",added:"2026-07-18"},
+{r:64,t:"Principal Specialist Sales Engineer – ZT Cloud, Enterprise (East)",co:"Zscaler",tier:3,tags:["vendor","ne"],remote:true,m:64,note:"Confirmed live on Zscaler's own Greenhouse board (5153351007), updated 2026-07-14. Remote across CT/DC/MD/MA/NJ/NY/PA/VA — explicit Massachusetts option. Senior pre-sales SE role but security/zero-trust focus is an adjacent stretch from your BCDR/HCI/storage core.",url:"https://job-boards.greenhouse.io/zscaler/jobs/5153351007",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/zscaler/5153351007 (200, live)",added:"2026-07-18"},
+{r:65,t:"Senior Solution Architect, GSI",co:"Veeam",tier:2,tags:["vendor","bcdr"],remote:true,m:78,note:"Confirmed live on Greenhouse (4744421101), Remote US. Global systems-integrator-facing SA — overlay role bridging Veeam and GSI partners on data protection/cyber-resilience architecture. Your VAR/GSI-adjacent pre-sales background applies.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4744421101",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/veeamsoftware/4744421101 (200, live)",added:"2026-07-18"},
+// added 2026-07-18 (second pass — market sweep)
+{r:66,t:"Systems Sales Engineer – New York/Newark",co:"Nutanix",tier:1,tags:["vendor","hci"],remote:true,m:90,note:"Live on Nutanix's own careers site (job n2364), $165,600–$248,400 + sign-on bonus + RSUs. Primarily remote, ~30% travel. Same pre-sales trusted-advisor SE motion as the now-closed Boston/Hartford req (n2317) — your NCP cert is the differentiator.",url:"https://careers.nutanix.com/en/jobs/n2364/systems-sales-engineer/",src:"Verified 2026-07-18: careers.nutanix.com/n2364 (fetched, open for applications; site returns 403 to raw curl but loads in-browser, consistent with prior Nutanix listings)",added:"2026-07-18"},
+{r:67,t:"Senior Sales Engineer – Upstate New York (Remote)",co:"Cohesity",tier:2,tags:["vendor","bcdr"],remote:true,m:82,note:"Confirmed live on Cohesity's own Workday board (R04165), USA – New York – Remote. Same req family as the tracked Connecticut SE seat (R04172) — data protection/cyber-resilience pre-sales SE.",url:"https://cohesity.wd5.myworkdayjobs.com/Cohesity_Careers/job/USA---New-York---Remote/Senior-Sales-Engineer_R04165",src:"Verified 2026-07-18: Workday cxs API cohesity.wd5.myworkdayjobs.com R04165 (200, live)",added:"2026-07-18"},
+{r:68,t:"SHI Channel Sales Engineer",co:"Commvault",tier:2,tags:["vendor","bcdr","var"],remote:true,m:78,note:"CLOSED — page now renders \"job not found\" (empty job body, confirmed against a live Commvault posting's markup for contrast) as of Jul 20 2026. Was: Remote Austin TX/NJ, SHI channel-partnership pre-sales SE, $93,500–$182,850. Watch commvault.com/careers/jobs for a repost.",url:"https://www.commvault.com/careers/jobs/5171777008",src:"Closed: \"job not found\" confirmed Jul 20 2026",added:"2026-07-18"},
+{r:69,t:"Director, Sales Engineering – Remote US",co:"Veeam",tier:3,tags:["vendor","bcdr"],remote:true,m:70,note:"Confirmed live on Greenhouse (4913127101), Remote US (general, not region-restricted). People-management stretch role rather than IC pre-sales, but a plausible next step at a core BCDR vendor given your 20+ years and existing Veeam SE pipeline relationships.",url:"https://job-boards.greenhouse.io/veeamsoftware/jobs/4913127101",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/veeamsoftware/4913127101 (200, live)",added:"2026-07-18"},
+{r:70,t:"Manager, Enterprise Pre-Sales Systems Engineering – NY/NJ",co:"Everpure (fmr. Pure Storage)",tier:3,tags:["vendor","storage"],remote:true,m:68,note:"Confirmed live on Greenhouse (8029418), New York NY / Newark NJ. SE team-management stretch rather than IC, but directly in your enterprise storage/Everpure Protect domain and Northeast-adjacent.",url:"https://job-boards.greenhouse.io/purestorage/jobs/8029418",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/purestorage/8029418 (200, live)",added:"2026-07-18"},
+{r:71,t:"Sr. Solutions Consultant – SDDC – Remote",co:"SHI International",tier:1,tags:["var","hci","storage"],remote:true,m:88,note:"Confirmed live on SHI's own Workday board (JR2714), US-Remote, $150,000–$180,000. VMware Cloud Foundation (Brownfield/Greenfield), VCF Automation, vSAN/storage/SAN, NSX, HCI, backup — blends pre-sales conversations with delivery. Requires VCAP/VCP; your VCP cert is a direct match.",url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers/job/US---Remote/Sr-Solutions-Consultant---SDDC_JR2714",src:"Verified 2026-07-18: Workday cxs API shi.wd12.myworkdayjobs.com JR2714 (200, live, US-Remote)",added:"2026-07-18"},
+{r:72,t:"Sr. Solutions Architect, Data Center & Cloud – NYC/NJ/CT",co:"Presidio",tier:1,tags:["var","ne","hci","storage","bcdr"],remote:true,m:85,note:"Confirmed live on Presidio's own UltiPro board (Req SRSOL009631, posted 2026-05-13), location options Hauppauge NY / Morristown NJ / Glastonbury CT — the CT option puts this in New England territory. Pre-sales SA for data center and hybrid cloud.",url:"https://recruiting.ultipro.com/PRE1019PRSD/JobBoard/4c05f321-903e-43d5-a4c0-5d9dd55dc34d/OpportunityDetail?opportunityId=e08e34fb-b0eb-483f-a952-7960f49cd0d1",src:"Verified 2026-07-18: Presidio UltiPro job-board API (live, 200)",added:"2026-07-18"},
+{r:73,t:"Senior Solutions Engineer (Strategic Accounts)",co:"Nasuni",tier:1,tags:["vendor","storage","bcdr","ne"],remote:true,m:91,note:"Confirmed live on Nasuni's own Greenhouse board (5230812008). Boston HQ or Remote-US, 8-12+ yrs pre-sales/solutions engineering. Enterprise storage, cloud, backup/DR, NAS, virtualization, hybrid cloud, ransomware protection — near-perfect match to your storage + BCDR background. Boston-headquartered vendor not previously tracked.",url:"https://www.nasuni.com/about-us/careers/open-positions/?gh_jid=5230812008",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/nasuni/5230812008 (200, live)",added:"2026-07-18"},
+{r:74,t:"Solution Engineer / Technical Specialist – Resilio (East Coast Remote)",co:"Nasuni",tier:1,tags:["vendor","storage","ne"],remote:true,m:85,note:"Confirmed live on Nasuni's own Greenhouse board (5156821008). Boston MA / New York NY / Philadelphia PA (East Coast remote). Pre-sales SE on Nasuni's newly acquired Resilio real-time data movement/edge-sync team — demos, POCs, technical validation.",url:"https://www.nasuni.com/about-us/careers/open-positions/?gh_jid=5156821008",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/nasuni/5156821008 (200, live)",added:"2026-07-18"},
+{r:75,t:"Technical Account Manager",co:"Nasuni",tier:2,tags:["vendor","storage"],remote:true,m:76,note:"Confirmed live on Nasuni's own Greenhouse board (5189879008). Remote US. Hands-on post-sale TAM owning the technical relationship for enterprise accounts on the cloud file-data platform — your pre-sales depth carries directly into a TAM seat.",url:"https://www.nasuni.com/about-us/careers/open-positions/?gh_jid=5189879008",src:"Verified 2026-07-18: Greenhouse API boards-api.greenhouse.io/nasuni/5189879008 (200, live)",added:"2026-07-18"},
+// added 2026-07-19
+{r:76,t:"Senior Solutions Engineer",co:"Infinidat",tier:1,tags:["vendor","storage","ne"],remote:false,m:89,note:"Confirmed live on Infinidat's own careers page and Comeet ATS. Waltham, MA — Professional Services USA team. Presales technical evaluations/demos, POCs, customer installs, field troubleshooting across ESX/Hyper-V/multi-OS hosts on InfiniBox enterprise storage. Infinidat is now a Lenovo company. Boston-area on-site/hybrid storage presales role — direct match to your storage architecture background; new company for the tracker.",url:"https://www.comeet.com/jobs/infinidat/D6.003/senior-solutions-engineer/53.D6D",src:"Verified 2026-07-19: infinidat.com/en/careers listing + Comeet job link (live)",added:"2026-07-19"},
+{r:77,t:"Consulting Field Solutions Architect, AI/Analytics – SLED",co:"Everpure (fmr. Pure Storage)",tier:2,tags:["vendor","storage"],remote:true,m:75,note:"Confirmed live on Greenhouse (7977846), Remote US, $171,500–$283,500. SLED (State/Local/Education) vertical overlay SA for AI/Analytics workloads — not core BCDR but fully remote-US and your FlashArray cert plus SA depth are directly relevant.",url:"https://job-boards.greenhouse.io/purestorage/jobs/7977846",src:"Verified 2026-07-19: Greenhouse API boards-api.greenhouse.io/purestorage/7977846 (200, live)",added:"2026-07-19"},
+{r:78,t:"Inside Sales Engineer – Northeast (Remote)",co:"Rubrik",tier:3,tags:["vendor","bcdr","ne"],remote:true,m:66,note:"Live on Rubrik careers (job.7964089), explicitly Northeast US territory supporting 2-3 AEs, $70,770–$112,980 + commission. Comp and \"Inside\" title sit below your 20+ yr seniority level, but the explicit NE territory and BCDR/cloud data management scope are a geographic fit worth a conversation.",url:"https://www.rubrik.com/company/careers/departments/job.7964089.73920?reqId=10996",src:"Corroborated 2026-07-19: rubrik.com/careers listing (Rubrik's site blocks automated fetch, consistent with other tracked Rubrik entries)",added:"2026-07-19"},
+{r:79,t:"Sr. Solution Architect – Security (Remote)",co:"Logicalis",tier:2,tags:["var","ne"],remote:true,m:77,note:"Confirmed live via Logicalis's own Workday API (JR05141), Virtual Location remote option alongside Corona CA/Miamisburg OH/Troy MI, $150,000–$170,000 plus commission. National VAR/SI pre-sales role — infrastructure/security design, POCs, BOMs. Not a direct BCDR/storage match but strong general multi-vendor infra pre-sales fit at a new company for the tracker.",url:"https://logicalis.wd3.myworkdayjobs.com/LogicalisCareers/job/Corona/Sr-Solution-Architect---Security_JR05141",src:"Verified 2026-07-19: Workday cxs API logicalis.wd3.myworkdayjobs.com JR05141 (live JSON)",added:"2026-07-19"},
+{r:80,t:"Partner Solutions Engineer – Rubrik",co:"Insight Enterprises",tier:3,tags:["var","bcdr"],remote:true,m:74,note:"Confirmed live on Insight's own careers portal (job ID 104930), Chandler AZ with Remote/Local eligibility (exact nationwide-remote scope unconfirmed). Rubrik-specific partner SE role at a major VAR — directly matches your BCDR/Rubrik background if remote scope covers the Northeast.",url:"https://careers.insight.com/careers/job/171840479808-partner-solutions-engineer-rubrik-chandler-united-states",src:"Verified 2026-07-19: careers.insight.com job 171840479808 (live)",added:"2026-07-19"},
+// added 2026-07-20
+{r:81,t:"Sales Engineer",co:"Druva",tier:1,tags:["vendor","bcdr"],remote:true,m:88,note:"Confirmed live on Druva's own Greenhouse board (8563248002), based in the Eastern US (Raleigh, NC nominal), $136,000–$181,333 + bonus/commission/equity. Cloud-native SaaS backup/ransomware-recovery pre-sales SE — same category as your Veeam/Rubrik/Cohesity background. New vendor for the tracker.",url:"https://job-boards.greenhouse.io/druva/jobs/8563248002",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/druva/8563248002 (200, live)",added:"2026-07-20"},
+{r:82,t:"Senior Partner Sales Engineer",co:"Druva",tier:1,tags:["vendor","bcdr","var"],remote:true,m:85,note:"Confirmed live on Druva's own Greenhouse board (8631457002), Remote US (Washington DC nominal office), $176,000–$235,333 + bonus/commission/equity. Partner-facing SE supporting Druva's VAR/MSP channel — your long VAR pre-sales history is a direct match.",url:"https://job-boards.greenhouse.io/druva/jobs/8631457002",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/druva/8631457002 (200, live)",added:"2026-07-20"},
+{r:83,t:"Senior Solution Architect – Cisco Enterprise Networking – Northeast",co:"CDW",tier:2,tags:["var","ne"],remote:true,m:78,note:"Confirmed live on CDW's own Workday board (R26_00001480), Virtual - New York, explicit Northeast territory, $94,500–$150,000 + 25% bonus target. Field pre-sales SA for Cisco routing/switching/SD-WAN/DNA — your Cisco UCS/datacenter depth applies though this req is networking- rather than storage/BCDR-focused.",url:"https://cdw.wd5.myworkdayjobs.com/Careers/job/Virtual---New-York/Senior-Solution-Architect---Cisco-Enterprise-Network_R26_00001480",src:"Verified 2026-07-20: Workday cxs API cdw.wd5.myworkdayjobs.com R26_00001480 (200, live)",added:"2026-07-20"},
+{r:84,t:"Storage Sales Specialist",co:"HPE",tier:2,tags:["vendor","storage","ne"],remote:true,m:76,note:"Confirmed live on careers.hpe.com (req 1206845), designated Remote/Teleworker with Massachusetts, Connecticut, and other New England states listed among eligible locations. Quota-carrying storage specialist rather than pure technical SE, but your multi-vendor storage architecture background and NE location are a strong match. No salary listed on posting.",url:"https://careers.hpe.com/us/en/job/1206845/Storage-Sales-Specialist",src:"Verified 2026-07-20: careers.hpe.com/1206845 fetched directly (200, live, MA/CT locations confirmed in page data)",added:"2026-07-20"},
+{r:85,t:"Healthcare Field CTO",co:"Cohesity",tier:3,tags:["vendor","bcdr"],remote:true,m:66,note:"Confirmed live on Cohesity's own Workday board (R04093), Remote with Boston Metro Area, MA listed among 9 eligible regions, $256,000–$320,000. Senior externally-facing strategist role bridging Cohesity's platform and the healthcare vertical (Epic/Cerner, HIPAA) — comp and Boston-area eligibility are compelling, but the posting requires deep healthcare-vertical experience not evident in your background, making this a real stretch.",url:"https://cohesity.wd5.myworkdayjobs.com/Cohesity_Careers/job/USA---New-York---Remote/Healthcare-Filed-CTO_R04093",src:"Verified 2026-07-20: Workday cxs API cohesity.wd5.myworkdayjobs.com R04093 (200, live)",added:"2026-07-20"},
+{r:86,t:"Sr. Solutions Architect, Intelligent Ops, DevOps",co:"Presidio",tier:2,tags:["var","hci","storage"],remote:true,m:74,note:"Confirmed live on Presidio's own UltiPro board (Req SRSOL009966), USA Remote. Pre-sales SA for intelligent operations/automation tooling layered on datacenter and cloud infrastructure — your Presidio-adjacent datacenter/hybrid-cloud background applies, DevOps/automation specialization is a moderate stretch.",url:"https://recruiting.ultipro.com/PRE1019PRSD/JobBoard/4c05f321-903e-43d5-a4c0-5d9dd55dc34d/OpportunityDetail?opportunityId=86cfaef8-31a2-4eba-b1f7-69bf074e2731",src:"Verified 2026-07-20: Presidio UltiPro job-board page fetched directly, content matches title (200, live)",added:"2026-07-20"},
+{r:87,t:"Technical Engagement Manager",co:"Presidio",tier:2,tags:["var","bcdr","hci","storage"],remote:true,m:77,note:"Confirmed live on Presidio's own UltiPro board (Req TECHN009747), USA Remote. TAM-adjacent client-facing technical role managing post-sales engagements across Presidio's infrastructure practice — your 20+ yr multi-vendor pre-sales background carries directly into this customer-facing technical seat.",url:"https://recruiting.ultipro.com/PRE1019PRSD/JobBoard/4c05f321-903e-43d5-a4c0-5d9dd55dc34d/OpportunityDetail?opportunityId=b1409785-0929-45bd-a65c-f37b1e505f83",src:"Verified 2026-07-20: Presidio UltiPro job-board page fetched directly, content matches title (200, live)",added:"2026-07-20"},
+{r:88,t:"Partner Solution Architect – GSI",co:"Zscaler",tier:3,tags:["vendor"],remote:true,m:65,note:"Confirmed live on Zscaler's own Greenhouse board (5155311007), Remote - USA (nationwide). Pre-sales architect overlay bridging Zscaler and Global System Integrator partners on Zero Trust platform deals — your VAR/GSI-adjacent pre-sales background applies, though security/zero-trust remains an adjacent stretch from your BCDR/HCI/storage core.",url:"https://job-boards.greenhouse.io/zscaler/jobs/5155311007",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/zscaler/5155311007 (200, live)",added:"2026-07-20"},
+{r:89,t:"Principal Sales Engineer – Healthcare",co:"Zscaler",tier:3,tags:["vendor"],remote:true,m:62,note:"Confirmed live on Zscaler's own Greenhouse board (5100430007), Remote - USA (nationwide). Senior pre-sales SE role but scoped to Zscaler's Zero Trust security platform within the healthcare vertical — both the security focus and healthcare specialization are stretches from your generalist BCDR/HCI/storage background.",url:"https://job-boards.greenhouse.io/zscaler/jobs/5100430007",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/zscaler/5100430007 (200, live)",added:"2026-07-20"},
+{r:90,t:"Sales Engineering Manager",co:"Rubrik",tier:3,tags:["vendor","bcdr"],remote:true,m:71,note:"Confirmed live on Rubrik's own Greenhouse-backed careers board (job.8053478), Remote US (nominal TX office). People-management role leading SLED-focused SEs on Rubrik's hybrid cloud data management platform — a leadership-track stretch, but your 20+ yrs and existing BCDR/Rubrik depth are directly relevant background for the team you'd be managing.",url:"https://www.rubrik.com/company/careers/departments/job.8053478?gh_jid=8053478",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/rubrik/8053478 (200, live)",added:"2026-07-20"},
+{r:91,t:"Field Sales Engineer – East",co:"Object First",tier:1,tags:["vendor","bcdr","ne"],remote:true,m:90,note:"Confirmed live on Object First's own Greenhouse board (4884716101), published Jun 5 2026. Candidates must be located in the Northeast; remote-friendly. Object First (independent unit of Veeam) builds immutable backup storage purpose-built for Veeam customers — your deep Veeam background plus VAR pre-sales history (POCs, channel partner enablement) is a direct match.",url:"https://job-boards.eu.greenhouse.io/objectfirsts/jobs/4884716101",src:"Verified 2026-07-20: Greenhouse EU boards-api objectfirsts/4884716101 (200, live)",added:"2026-07-20"},
+{r:92,t:"Solutions Engineer – Northeast",co:"Keepit",tier:1,tags:["vendor","bcdr","ne"],remote:true,m:88,note:"Confirmed live on Keepit's own careers portal. Northeast/Boston, hybrid. Keepit is a SaaS backup vendor for M365/Azure/Dynamics/Salesforce — squarely BCDR/data-protection pre-sales, with the exact NE location match your search requires.",url:"https://careers.keepit.com/jobs/7841701-solutions-engineer-northeast",src:"Verified 2026-07-20: careers.keepit.com job page (200, live, title confirmed)",added:"2026-07-20"},
+{r:93,t:"Sr. Sales Engineer – Federal Civilian",co:"Cohesity",tier:2,tags:["vendor","bcdr","ne"],remote:true,m:80,note:"Confirmed live on Cohesity's own Workday board (R04132), posted 13 days ago. Washington DC Metro Area, remote. Federal civilian vertical SE — same $190,400–$238,000 OTE band as your tracked CT req; your cross-stack BCDR depth applies directly.",url:"https://cohesity.wd5.myworkdayjobs.com/Cohesity_Careers/job/Washington-DC-Metro-Area---USA-Remote/Sr-Sales-Engineer---Federal-Civilian_R04132",src:"Verified 2026-07-20: Workday cxs API cohesity.wd5.myworkdayjobs.com R04132 (200, live)",added:"2026-07-20"},
+{r:94,t:"Director, Sales Engineering – SLED",co:"Cohesity",tier:2,tags:["vendor","bcdr"],remote:true,m:74,note:"Confirmed live on Cohesity's own Workday board (R04004). Remote, MD anchor — posting explicitly states candidates outside the designated area are welcome. Leadership role directing SLED-focused SEs; a management-track stretch but your 20+ yrs and BCDR depth are exactly the background this team needs.",url:"https://cohesity.wd5.myworkdayjobs.com/Cohesity_Careers/job/USA---Maryland---Remote/Director--Sales-Engineering---SLED_R04004",src:"Verified 2026-07-20: Workday cxs API cohesity.wd5.myworkdayjobs.com R04004 (200, live)",added:"2026-07-20"},
+{r:95,t:"Sr. Systems Sales Engineer – Philadelphia/Pittsburgh/Newark",co:"Nutanix",tier:2,tags:["vendor","hci","ne"],remote:true,m:81,note:"Confirmed live on Nutanix's own careers site (n2344). Candidates must be based in PA or NJ; primarily remote with ~40% travel. $196,000–$294,000. Newark anchor is NE-adjacent territory; your NCP cert is the differentiator.",url:"https://careers.nutanix.com/en/jobs/n2344/sr-systems-sales-engineer/",src:"Verified 2026-07-20: careers.nutanix.com job page (200, live, title/comp confirmed)",added:"2026-07-20"},
+{r:96,t:"Sr. Sales Engineer – New York City",co:"Rubrik",tier:2,tags:["vendor","bcdr","ne"],remote:false,m:72,note:"Confirmed live on Rubrik's own Greenhouse-backed board (8022544), updated Jul 15 2026. $136,290–$217,630. Territory-based supporting NYC Enterprise Healthcare accounts — not explicitly remote, but NYC is within striking distance of Boston and your cross-stack BCDR depth (Veeam+Rubrik+Cohesity) differentiates you.",url:"https://www.rubrik.com/company/careers/departments/job.8022544?gh_jid=8022544",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/rubrik/8022544 (200, live)",added:"2026-07-20"},
+{r:97,t:"Senior Solution Architect – Cisco Enterprise Networking – Northeast",co:"CDW",tier:2,tags:["var","ne"],remote:true,m:76,note:"Reopened — new requisition R26_00001480 (previous NE posting had expired). Confirmed live on CDW's own Workday board, Virtual – New York, posted 30+ days. $94,500–$150,000. Your Cisco UCS/datacenter and multi-vendor VAR pre-sales background applies.",url:"https://cdw.wd5.myworkdayjobs.com/Careers/job/Virtual---New-York/Senior-Solution-Architect---Cisco-Enterprise-Network_R26_00001480",src:"Verified 2026-07-20: Workday cxs API cdw.wd5.myworkdayjobs.com R26_00001480 (200, live)",added:"2026-07-20"},
+{r:98,t:"Sr. Field Solution Architect – AWS",co:"Connection (PC Connection)",tier:2,tags:["var"],remote:true,m:78,note:"Confirmed live on Connection's own iCIMS board, Remote US, valid through 2027-07-20. Presales SA driving multi-vendor advanced-tech solutions with an AWS focus — complements your in-progress AWS SAA-C03 and long VAR pre-sales history.",url:"https://careers-connection.icims.com/jobs/10268/sr-field-solution-architect--aws/job",src:"Verified 2026-07-20: iCIMS direct fetch, JobPosting JSON-LD confirms Remote/US (200, live)",added:"2026-07-20"},
+{r:99,t:"Distinguished Architect",co:"Connection (PC Connection)",tier:2,tags:["var","ne"],remote:true,m:76,note:"Confirmed live on Connection's own iCIMS board, Remote – New Hampshire (New England). Senior strategic/technical-leadership architect role penetrating targeted accounts — matches your 20+ yr veteran profile even though not explicitly labeled BCDR.",url:"https://careers-connection.icims.com/jobs/10432/distinguished-architect/job",src:"Verified 2026-07-20: iCIMS direct fetch (200, live)",added:"2026-07-20"},
+{r:100,t:"Sr. Inside Solutions Architect – Security",co:"Connection (PC Connection)",tier:3,tags:["var"],remote:true,m:62,note:"Confirmed live on Connection's own iCIMS board, fully remote. Presales trusted-advisor role but cybersecurity/IAM/threat-detection focus is a stretch from your BCDR/HCI/storage core.",url:"https://careers-connection.icims.com/jobs/10269/sr-inside-sol-architect---remote/job",src:"Verified 2026-07-20: iCIMS direct fetch (200, live)",added:"2026-07-20"},
+{r:101,t:"Partner Sales Engineer",co:"Cribl",tier:2,tags:["vendor"],remote:true,m:68,note:"Confirmed live on Cribl's own Greenhouse board (6099714004), updated Jun 24 2026. Remote US, no city restriction. Partner/channel-facing SE building technical enablement across the VAR ecosystem — plays directly to your 20+ yrs of multi-vendor VAR/MSP channel relationships, though Cribl's telemetry/data-pipeline product is a stretch from BCDR/HCI/storage.",url:"https://cribl.io/job-detail/?gh_jid=6099714004",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/cribl/6099714004 (200, live)",added:"2026-07-20"},
+{r:102,t:"Solution Architect (AI/LLM Inference)",co:"Baseten",tier:2,tags:["vendor"],remote:true,m:70,note:"Confirmed live on Baseten's own Ashby board (isRemote:true, Remote-US listed as a secondary location alongside SF/NYC). Baseten just raised a $1.5B Series F powering inference for AI companies like Cursor and Notion. Pre-sales role running discovery/POCs/demos for AI inference deployments — leverages your hands-on Ollama/homelab AI experience plus enterprise infra architecture background.",url:"https://jobs.ashbyhq.com/baseten/54c83823-574e-40ad-9cff-a57acff0ffe6",src:"Verified 2026-07-20: Ashby posting-api job-board/baseten (200, isRemote:true confirmed)",added:"2026-07-20"},
+{r:103,t:"Senior Sales Engineer, Majors",co:"Zscaler",tier:3,tags:["vendor","ne"],remote:true,m:65,note:"Confirmed live on Zscaler's own Greenhouse board (5032672007), updated Jul 14 2026. Remote NJ/NY/NC. $154,875–$221,250 base. Senior pre-sales SE on Zscaler's Zero Trust platform for major accounts — NY/NJ region fits your NE base, though security focus remains a stretch from your BCDR/HCI/storage core.",url:"https://job-boards.greenhouse.io/zscaler/jobs/5032672007",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/zscaler/5032672007 (200, live)",added:"2026-07-20"},
+{r:104,t:"Commercial Sales Engineer – NY/NJ",co:"Zscaler",tier:3,tags:["vendor","ne"],remote:true,m:62,note:"Confirmed live on Zscaler's own Greenhouse board (5187339007), updated Jul 20 2026. NYC/Remote-NJ. Commercial-segment pre-sales SE — NE-adjacent region, but junior segment and security focus are both stretches from your senior BCDR/HCI/storage background.",url:"https://job-boards.greenhouse.io/zscaler/jobs/5187339007",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/zscaler/5187339007 (200, live)",added:"2026-07-20"},
+{r:105,t:"Principal Solutions Architect, AI Ecosystem & Alliances",co:"WEKA",tier:3,tags:["vendor","storage"],remote:true,m:56,note:"Confirmed live on WEKA's own Greenhouse board (5084113007, board slug \"wekatest\"), posted Mar 27 2026 (older listing, still open). US Remote. High-performance parallel-filesystem storage for AI/HPC workloads — a natural extension of your Pure Storage/Nutanix storage-architecture background, but role leans alliance/partnership strategy more than classic customer-facing pre-sales.",url:"https://www.weka.io/company/careers/?gh_jid=5084113007",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/wekatest/5084113007 (200, live)",added:"2026-07-20"},
+{r:106,t:"IAM – Lead Technical Sales Architect",co:"ePlus Technology",tier:3,tags:["var"],remote:true,m:58,note:"Confirmed live on ePlus's own Greenhouse board (4242760009), Req #1260. Remote-US, ~20% travel. $125,000–$170,000 base. Remote presales sales-architect title, but identity/access-management specialization is a stretch from your BCDR/HCI/storage core.",url:"https://job-boards.greenhouse.io/eplusinc/jobs/4242760009",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/eplusinc/4242760009 (200, live)",added:"2026-07-20"},
+{r:107,t:"Principal Architect – Data Governance",co:"Logicalis",tier:3,tags:["var"],remote:true,m:60,note:"Confirmed live on Logicalis's own Workday board (JR05096), Virtual Location (remote). Presales senior technical-seller role scoped to data-governance/information-protection rather than core storage/BCDR, though \"operational resilience\" framing has some overlap.",url:"https://logicalis.wd3.myworkdayjobs.com/en-US/LogicalisCareers/job/Virtual-Location/Principal-Architect---Data-Governance_JR05096",src:"Verified 2026-07-20: Workday cxs API logicalis.wd3.myworkdayjobs.com JR05096 (200, live)",added:"2026-07-20"},
+{r:108,t:"Pre-Sales Solutions Architect – PNW",co:"Qumulo",tier:1,tags:["vendor","storage"],remote:true,m:85,note:"Confirmed live on Qumulo's own Ashby board, Remote-US (isRemote:true) despite \"PNW\" in the title. Hybrid-cloud/enterprise-storage platform, trusted-advisor pre-sales role with POC ownership — your Pure/Nutanix storage-architecture background transfers directly.",url:"https://jobs.ashbyhq.com/qumulo/ff90edbe-dbad-4e45-b7e6-64ef8574ce47",src:"Verified 2026-07-20: Ashby posting-api job-board/qumulo (200, isRemote:true, USA remote confirmed)",added:"2026-07-20"},
+{r:109,t:"Principal Solutions Architect – FSI",co:"DDN (DataDirect Networks)",tier:3,tags:["vendor","storage"],remote:true,m:58,note:"Confirmed live on DDN's own Ashby board, but workplaceType is Hybrid based in Albany NY — not full national remote, a real geographic stretch from Boston/NE. AI/HPC enterprise-storage pre-sales SA (POCs, RFPs); your storage-architecture depth is relevant even though the location isn't ideal.",url:"https://jobs.ashbyhq.com/ddn/a60386ae-88bd-4e45-aeba-0632ac5adf01",src:"Verified 2026-07-20: Ashby posting-api job-board/ddn (200, workplaceType:Hybrid, Remote-New York)",added:"2026-07-20"},
+{r:110,t:"Solutions Architect",co:"Nebius",tier:2,tags:["vendor"],remote:true,m:65,note:"Confirmed live on Nebius's own Greenhouse board (job 4376580101), Remote-US. GPU-cloud/AI-infrastructure provider scaling its US GTM team. Your datacenter/infra depth is the differentiator vs. AI-native candidates, though the GPU/AI stack itself is a skills stretch from BCDR/storage.",url:"https://careers.nebius.com/?gh_jid=4376580101",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/nebius/4376580101 (200, live)",added:"2026-07-20"},
+{r:111,t:"Technical Account Manager – Token Factory",co:"Nebius",tier:2,tags:["vendor"],remote:true,m:66,note:"Confirmed live on Nebius's own Greenhouse board (job 4816975101), Remote-US. Directly matches your TAM target title; Token Factory is Nebius's inference/AI-model product line. Same GPU/AI skills-stretch caveat as the SA role at this company.",url:"https://careers.nebius.com/?gh_jid=4816975101",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/nebius/4816975101 (200, live)",added:"2026-07-20"},
+{r:112,t:"AI Field Engineer – Enterprise",co:"Fireworks AI",tier:2,tags:["vendor"],remote:true,m:64,note:"Confirmed live on Fireworks AI's own Greenhouse board (job 4284317009), Remote-USA option (also NYC/San Mateo). Field/pre-sales engineering at a fast-growing (Series C, ~$4B valuation) gen-AI inference infra company — role type fits well, the AI-inference stack is a skills stretch.",url:"https://job-boards.greenhouse.io/fireworksai/jobs/4284317009",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/fireworksai/4284317009 (200, live)",added:"2026-07-20"},
+{r:113,t:"Strategic Technical Account Manager, GPU",co:"Vultr",tier:2,tags:["vendor"],remote:true,m:67,note:"Confirmed live on Vultr's own Ashby board, Remote-US (isRemote:true). $3.5B self-funded GPU-cloud infra company scaling customer success. Direct title match to your TAM target; GPU/cloud specifics are a stretch from your storage/BCDR core.",url:"https://jobs.ashbyhq.com/vultr/47bd7e14-96fd-417d-b520-8a3a9da09e01",src:"Verified 2026-07-20: Ashby posting-api job-board/vultr (200, isRemote:true confirmed)",added:"2026-07-20"},
+{r:114,t:"Field CTO – AI & Modern Data Analytics",co:"MinIO",tier:3,tags:["vendor","storage"],remote:true,m:55,note:"Confirmed live on MinIO's own Greenhouse board (job 5204947008), tagged Remote-US, but the job description text states the role is \"Bay Area, CA based\" — a real contradiction, so remote eligibility is unconfirmed. Executive-level pre-sales/evangelist role at an object-storage/AI-data vendor; strong role-type fit if remote is honored.",url:"https://job-boards.greenhouse.io/minio/jobs/5204947008",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/minio/5204947008 (200, live; location tag vs. JD text conflict noted)",added:"2026-07-20"},
+{r:115,t:"Enterprise Solutions Manager",co:"11:11 Systems",tier:1,tags:["vendor","bcdr"],remote:true,m:80,note:"Confirmed live via 11:11 Systems' ADP career-center jobs API (requisition 9201059930613_1, ExternalJobID 586131), USA-Virtual/remote. BCDR/managed-cloud vendor (Sungard AS + iland heritage) — leads technical solution design and RTO/RPO lifecycle management for large accounts, essentially a technical BCDR TAM. Direct fit for your BCDR depth.",url:"https://1111systems.com/why-1111/careers/",src:"Verified 2026-07-20: ADP Workforce Now career-center API, requisition 9201059930613_1 live (\"Enterprise Solutions Manager\"); ADP widget has no stable per-job deep link, so URL points to the careers page hosting the widget",added:"2026-07-20"},
+{r:116,t:"Solutions Architect (East)",co:"Writer",tier:2,tags:["vendor"],remote:true,m:63,note:"Confirmed live on Writer's own Ashby board (isRemote:true), listed New York City but fully remote-flagged. Enterprise generative-AI platform pre-sales SA covering the East region — role type fits well, hybrid-NYC anchor is a geographic stretch from Boston.",url:"https://jobs.ashbyhq.com/writer/a1d96909-a580-4fd6-b099-bfc8a8dfa6e3",src:"Verified 2026-07-20: Ashby posting-api job-board/writer (200, isRemote:true confirmed)",added:"2026-07-20"},
+{r:117,t:"Sr. Solutions Engineer – MFG",co:"Databricks",tier:2,tags:["vendor","ne"],remote:false,m:60,note:"Confirmed live on Databricks' own Greenhouse board (job 8417654002), Boston, MA (Northeast US territory). Pre-sales SE — technical strategy, value-selling, POCs, technical account management. Excellent geographic fit; Databricks SE roles skew toward data-engineering/ML skill sets rather than storage/BCDR, so this is a partial skills stretch.",url:"https://databricks.com/company/careers/open-positions/job?gh_jid=8417654002",src:"Verified 2026-07-20: Greenhouse API boards-api.greenhouse.io/databricks/8417654002 (200, live, location Boston MA)",added:"2026-07-20"},
+{r:118,t:"Solutions Architect (EST or PST)",co:"Deepgram",tier:1,tags:["vendor"],remote:true,m:72,note:"Confirmed live on Deepgram's own Ashby board (isRemote:true, workplaceType:Remote), explicitly scoped to EST or PST timezone. Voice-AI platform (Series C) pre-sales SA driving technical pre-sales engagements, POCs, and technical validation — strong role-type fit, fully remote and EST-friendly.",url:"https://jobs.ashbyhq.com/deepgram/844ec2d9-4256-4be0-a6c6-78ebf1391a78",src:"Verified 2026-07-20: Ashby posting-api job-board/deepgram (200, isRemote:true confirmed)",added:"2026-07-20"},
+{r:119,t:"Client Principal Architect, Data & Cloud (HCLS)",co:"Presidio",tier:2,tags:["var"],remote:true,m:68,note:"Confirmed live on Presidio's UltiPro board (req CLIEN009935), USA-Remote, posted 2026-07-10. Leads presales discovery, architecture, design, proposals, and SOW creation for healthcare/life-sciences accounts — core pre-sales SA scope, fully remote.",url:"https://recruiting.ultipro.com/PRE1019PRSD/JobBoard/4c05f321-903e-43d5-a4c0-5d9dd55dc34d/OpportunityDetail?opportunityId=0d5dc205-8c81-450f-8ad8-0db9a18102a8",src:"Verified 2026-07-20: UltiPro job board JSON, req CLIEN009935, 200",added:"2026-07-20"},
+];
+
+// ── COMPANY DATA ─────────────────────────────────────────────────────────
+const COMPANIES=[
+  {name:"SHI International",type:"VAR / National",roles:"Strategic SE (Houston office), Enterprise SE Boston (MA remote), Commercial SE (Austin office), Data Protection SE (remote), Platforms SA (remote), SDDC SA (remote, delivery), Cyber SA (Somerset NJ office), Network SE (DC metro remote), VMware SA (remote), Sr. Solutions Consultant SDDC (remote)",count:10,url:"https://shi.wd12.myworkdayjobs.com/en-US/shicareers"},
+  {name:"Commvault",type:"Vendor — BCDR",roles:"DB & Cyber Resilience SA, SaaS SE East, Cloud AE East, MSP AE",count:4,url:"https://www.commvault.com/careers/jobs"},
+  {name:"Everpure (Pure Storage)",type:"Vendor — Storage",roles:"Sr. SE Enterprise CT, Sr. Pre-Sales SE Everpure Protect Boston, Manager Enterprise Pre-Sales SE NY/NJ, Consulting Field SA AI/Analytics SLED (Remote US)",count:4,url:"https://job-boards.greenhouse.io/purestorage"},
+  {name:"Veeam",type:"Vendor — BCDR",roles:"Sr. SSE Texas, Sr. SE Federal DOD DC/MD/VA, Sr. SE Data & AI Security (Remote MA), Sales SSE Commercial, SSE VDC M365, TAM, SE Kasten, Technical Partner Manager, Sr. Solution Architect GSI, Director Sales Engineering (Remote US)",count:10,url:"https://careers.veeam.com"},
+  {name:"Rubrik",type:"Vendor — BCDR/Security",roles:"GSI SA Cognizant, Sr. SE Federal, Sr. SE Healthcare NC, SE SaaS Specialist, Sr. SE Ohio/Strategic (Remote), Inside SE Northeast (Remote), Sales Engineering Manager (Remote), Sr. SE NYC (Healthcare)",count:8,url:"https://www.rubrik.com/company/careers/departments/sales-engineering"},
+  {name:"Nutanix",type:"Vendor — HCI",roles:"Systems Sales Engineer Boston/Hartford (closed), Systems Sales Engineer NY/Newark, TAM Enterprise NE, Consulting Architect EUC (Remote US), Sr. Systems Sales Engineer Philadelphia/Pittsburgh/Newark",count:5,url:"https://careers.nutanix.com/en/jobs/n2364/systems-sales-engineer/"},
+  {name:"Cohesity",type:"Vendor — BCDR/Storage",roles:"Senior Sales Engineer CT (Remote), Senior Sales Engineer Upstate NY (Remote), Solutions Architect Phoenix Metro (Remote), Healthcare Field CTO (Remote incl. Boston Metro), Sr. Sales Engineer Federal Civilian DC Metro (Remote), Director Sales Engineering SLED (Remote)",count:6,url:"https://cohesity.wd5.myworkdayjobs.com/Cohesity_Careers"},
+  {name:"Dell Technologies",type:"Vendor — Storage/Infra",roles:"Sr. SE UDS Data Management East (Remote Massachusetts)",count:1,url:"https://dell.wd1.myworkdayjobs.com/external/job/remote---massachusetts-united-states/senior-systems-engineer--uds-data-management---east_r285911"},
+  {name:"HPE / Zerto",type:"Vendor — BCDR/Networking/Storage",roles:"Storage Sales Specialist (Remote/Teleworker incl. MA/CT). NO open Zerto SE roles — job 1191961 (Zerto Pre Sales Engineer) confirmed 410 Gone Jul 19 2026. Watch careers.hpe.com for a Zerto repost.",count:1,url:"https://careers.hpe.com/"},
+  {name:"NetApp",type:"Vendor — Storage",roles:"Enterprise SE Atlanta (remote)",count:1,url:"https://careers.netapp.com"},
+  {name:"Wasabi Technologies",type:"Vendor — Storage",roles:"NO pre-sales SA/SE roles open (verified on their Greenhouse board Jul 18 2026 — the BuiltIn listing was stale). Closest: Principal Cloud Support Engineer. Watch their board for SE openings.",count:0,url:"https://job-boards.greenhouse.io/wasabi"},
+  {name:"Cisco",type:"Vendor — Networking",roles:"NO pre-sales SE roles open (Boston posting confirmed 410 Gone Jul 20 2026; Workday keyword search for Boston/MA returns none). Watch careers.cisco.com for a repost.",count:0,url:"https://careers.cisco.com/global/en/job/CISCISGLOBAL2017907EXTERNALENGLOBAL/Solutions-Engineer"},
+  {name:"Blue Mantis",type:"VAR / NE MSP",roles:"Presales Enterprise Architect (Remote, NE-based)",count:1,url:"https://bluemantis.pinpointhq.com/en/postings/dc11ea03-4d81-4064-ad75-a761ba8ffcc8"},
+  {name:"Presidio",type:"VAR",roles:"SA BCDR/Cyber Resilience NE, Sr. SA Datacenter/Cloud MI/OH/IN, Sr. SA Data Center/Cloud Woburn MA (NE), Sr. SA Data Center & Cloud NYC/NJ/CT (NE), Sr. SA Intelligent Ops/DevOps (Remote), Technical Engagement Manager (Remote), Client Principal Architect Data & Cloud HCLS (Remote)",count:7,url:"https://www.presidio.com/careers"},
+  {name:"ePlus Technology",type:"VAR / NE",roles:"SA VMware / HCI NE, IAM Lead Technical Sales Architect (Remote)",count:2,url:"https://www.eplus.com/careers"},
+  {name:"CDW",type:"VAR / National",roles:"Solution Architect Team Lead Cisco Data Center (Remote), SR Field Solutions Architect (Remote), Consulting Solution Architect – Managed Services (Remote), Sr. Solution Architect Cisco Enterprise Networking NE (Remote, reopened R26_00001480)",count:4,url:"https://cdw.wd5.myworkdayjobs.com/Careers"},
+  {name:"BlackHawk Data",type:"VAR / NYC",roles:"Senior Solution Architect (Pre-Sales Engineering) — now Hybrid NYC office, networking/security focus (was remote/storage)",count:1,url:"https://blackhawkdatallc12029.applytojob.com/apply/jobs/details/n3mI6Mn2uO"},
+  {name:"Connection (PC Connection)",type:"VAR / NE",roles:"Field Solution Architect (Remote US), Sr. Field Solution Architect AWS (Remote), Distinguished Architect (Remote NH), Sr. Inside Solutions Architect Security (Remote)",count:4,url:"https://careers-connection.icims.com/jobs/10072/field-solution-architect/job"},
+  {name:"Thrive (MSP)",type:"MSP / NE",roles:"Solutions Architect Boston/NE",count:1,url:"https://thrivecloud.com/careers"},
+  {name:"eGroup",type:"VAR / SI",roles:"NO current pre-sales SA/SE openings (verified on egroup-us.com/careers/ Jul 18 2026 — site only accepts unsolicited resumes for future openings). Watch their careers page for reposts.",count:0,url:"https://www.egroup-us.com/careers/"},
+  {name:"Sentinel Technologies",type:"VAR",roles:"NO remote/security-focused SA role open (verified on Sentinel Technologies' own iCIMS board Jul 18 2026). Closest live match: onsite Enterprise Network Solutions Architect, Tempe AZ — not a fit (onsite, non-security).",count:0,url:"https://careers-sentinel.icims.com/"},
+  {name:"WWT",type:"VAR / National",roles:"SA BCDR/MSP Remote",count:1,url:"https://www.wwt.com/careers"},
+  {name:"Zscaler",type:"Vendor — Security/Zero Trust",roles:"Principal Specialist SE – ZT Cloud, Enterprise East (remote incl. MA), Partner SA – GSI (Remote US), Principal SE – Healthcare (Remote US), Senior SE Majors (Remote NJ/NY/NC), Commercial SE NY/NJ (Remote)",count:5,url:"https://job-boards.greenhouse.io/zscaler/jobs/5153351007"},
+  {name:"Nasuni",type:"Vendor — Storage/BCDR",roles:"Senior Solutions Engineer Strategic Accounts (Boston/Remote), Solution Engineer/Technical Specialist Resilio (East Coast Remote), Technical Account Manager (Remote US)",count:3,url:"https://www.nasuni.com/about-us/careers/open-positions/"},
+  {name:"Infinidat",type:"Vendor — Storage",roles:"Senior Solutions Engineer (Waltham, MA)",count:1,url:"https://www.infinidat.com/en/careers"},
+  {name:"Logicalis",type:"VAR / SI",roles:"Sr. Solution Architect – Security (Remote, Virtual Location option), Principal Architect – Data Governance (Remote)",count:2,url:"https://logicalis.wd3.myworkdayjobs.com/LogicalisCareers"},
+  {name:"Insight Enterprises",type:"VAR / National",roles:"Partner Solutions Engineer – Rubrik (Chandler AZ, Remote/Local)",count:1,url:"https://careers.insight.com/careers"},
+  {name:"Druva",type:"Vendor — BCDR/SaaS",roles:"Sales Engineer (Remote, Eastern US), Senior Partner Sales Engineer (Remote US)",count:2,url:"https://job-boards.greenhouse.io/druva"},
+  {name:"Object First",type:"Startup — BCDR",roles:"Field Sales Engineer – East (Remote, Northeast required)",count:1,url:"https://job-boards.eu.greenhouse.io/objectfirsts/jobs/4884716101"},
+  {name:"Keepit",type:"Vendor — BCDR/SaaS",roles:"Solutions Engineer – Northeast (Hybrid Boston/NE)",count:1,url:"https://careers.keepit.com/jobs/7841701-solutions-engineer-northeast"},
+  {name:"Cribl",type:"Vendor — Data/Telemetry Infra",roles:"Partner Sales Engineer (Remote US)",count:1,url:"https://cribl.io/job-detail/?gh_jid=6099714004"},
+  {name:"Baseten",type:"Vendor — AI Infra",roles:"Solution Architect, AI/LLM Inference (Remote US option)",count:1,url:"https://jobs.ashbyhq.com/baseten/54c83823-574e-40ad-9cff-a57acff0ffe6"},
+  {name:"WEKA",type:"Vendor — AI Data Infra/Storage",roles:"Principal Solutions Architect, AI Ecosystem & Alliances (Remote US)",count:1,url:"https://www.weka.io/company/careers/?gh_jid=5084113007"},
+  {name:"Qumulo",type:"Vendor — Enterprise/Hybrid-Cloud Storage",roles:"Pre-Sales Solutions Architect PNW (Remote US)",count:1,url:"https://jobs.ashbyhq.com/qumulo"},
+  {name:"DDN (DataDirect Networks)",type:"Vendor — AI/HPC Enterprise Storage",roles:"Principal Solutions Architect FSI (Hybrid Albany NY)",count:1,url:"https://jobs.ashbyhq.com/ddn"},
+  {name:"Nebius",type:"Startup — AI/GPU Cloud Infrastructure",roles:"Solutions Architect (Remote US), Technical Account Manager – Token Factory (Remote US)",count:2,url:"https://careers.nebius.com/"},
+  {name:"Fireworks AI",type:"Startup — Gen-AI Inference Infrastructure",roles:"AI Field Engineer, Enterprise (Remote US)",count:1,url:"https://job-boards.greenhouse.io/fireworksai"},
+  {name:"Vultr",type:"Startup — Cloud/GPU Infrastructure",roles:"Strategic Technical Account Manager, GPU (Remote US)",count:1,url:"https://jobs.ashbyhq.com/vultr"},
+  {name:"MinIO",type:"Startup — Object Storage/AI Data Infrastructure",roles:"Field CTO, AI & Modern Data Analytics (Remote US, location caveat — JD text says Bay Area based)",count:1,url:"https://job-boards.greenhouse.io/minio"},
+  {name:"11:11 Systems",type:"Vendor — BCDR/Managed Cloud",roles:"Enterprise Solutions Manager (Remote/USA-Virtual)",count:1,url:"https://1111systems.com/why-1111/careers/"},
+  {name:"Writer",type:"Startup — Enterprise Generative AI Platform",roles:"Solutions Architect, East (Hybrid NYC)",count:1,url:"https://jobs.ashbyhq.com/writer"},
+  {name:"Databricks",type:"Vendor — Data/AI Platform",roles:"Sr. Solutions Engineer, MFG (Boston, MA)",count:1,url:"https://job-boards.greenhouse.io/databricks"},
+  {name:"Deepgram",type:"Startup — Voice AI Platform",roles:"Solutions Architect / Pre-Sales Solutions Engineer (Remote, EST/PST)",count:1,url:"https://jobs.ashbyhq.com/deepgram"},
+];
+
+// ── SOURCE CLASSIFICATION ────────────────────────────────────────────────
+// Aggregator boards can keep showing jobs after they close — every job from
+// one of these domains gets a "Verify on company site" link.
+const AGGREGATORS=["builtin.com","builtinboston.com","indeed.com","glassdoor.com","ziprecruiter.com","linkedin.com","dice.com","snagajob.com","jobgether.com","adzuna.com","tealhq.com","wellfound.com","remoterocketship.com","accel.com","insightpartners.com","dejobs.org","lensa.com","monster.com","simplyhired.com"];
+function isAggregator(url){
+  try{const h=new URL(url).hostname;return AGGREGATORS.some(d=>h===d||h.endsWith("."+d));}
+  catch(e){return false;}
+}
+// Company name → official careers page, for the verify link.
+const CAREERS=[
+  ["nutanix","https://careers.nutanix.com/"],
+  ["everpure","https://www.purestorage.com/company/careers/opportunities.html"],
+  ["pure","https://www.purestorage.com/company/careers/opportunities.html"],
+  ["commvault","https://www.commvault.com/careers/jobs"],
+  ["veeam","https://careers.veeam.com/"],
+  ["cohesity","https://cohesity.wd5.myworkdayjobs.com/Cohesity_Careers"],
+  ["rubrik","https://www.rubrik.com/company/careers"],
+  ["dell","https://jobs.dell.com/"],
+  ["zerto","https://careers.hpe.com/"],
+  ["hpe","https://careers.hpe.com/"],
+  ["netapp","https://careers.netapp.com/"],
+  ["wasabi","https://wasabi.com/company/careers"],
+  ["cisco","https://careers.cisco.com/"],
+  ["blue mantis","https://bluemantis.com/about/careers/"],
+  ["presidio","https://www.presidio.com/careers/"],
+  ["eplus","https://www.eplus.com/careers"],
+  ["cdw","https://www.cdwjobs.com/"],
+  ["blackhawk","https://blackhawk11.com/careers/"],
+  ["connection","https://www.connection.com/content/about-us/careers"],
+  ["thrive","https://thrivenextgen.com/careers/"],
+  ["egroup","https://www.egroup-us.com/careers/"],
+  ["sentinel","https://careers-sentinel.icims.com/"],
+  ["wwt","https://www.wwt.com/careers"],
+  ["shi","https://shi.wd12.myworkdayjobs.com/en-US/shicareers"],
+  ["cognizant","https://careers.cognizant.com/"],
+  ["zscaler","https://job-boards.greenhouse.io/zscaler"],
+  ["nasuni","https://www.nasuni.com/about-us/careers/open-positions/"],
+  ["infinidat","https://www.infinidat.com/en/careers"],
+  ["logicalis","https://logicalis.wd3.myworkdayjobs.com/LogicalisCareers"],
+  ["insight","https://careers.insight.com/careers"],
+];
+function careersUrl(co){
+  const c=String(co||"").toLowerCase();
+  for(const [k,u] of CAREERS){if(c.includes(k))return u;}
+  return "https://www.google.com/search?q="+encodeURIComponent(co+" careers jobs");
+}
+
+// Free job sources — no paid subscriptions. "Uses your login" means the link
+// opens the site and YOUR browser signs you in; this page never stores passwords.
+const FREE_SOURCES=[
+  {name:"LinkedIn Jobs",url:"https://www.linkedin.com/jobs/",login:true,note:"Free account. Biggest volume — but listings often stay visible after the role closes. Always verify on the company site before applying."},
+  {name:"Indeed",url:"https://www.indeed.com/",login:true,note:"Free. Set alerts for 'Sales Engineer' / 'Solutions Architect' + Boston or Remote. Same staleness caveat as LinkedIn."},
+  {name:"BuiltIn Boston",url:"https://www.builtin.com/jobs?city=Boston&state=Massachusetts",login:false,note:"Free, no login needed to browse. Strong for Boston tech (Wasabi, Rapid7, SHI listings)."},
+  {name:"Google Jobs",url:"https://www.google.com/search?q=solutions+architect+pre-sales+jobs+boston+OR+remote&ibp=htl;jobs",login:false,note:"Free aggregate of everything, including postings straight from company ATS pages."},
+  {name:"Dice",url:"https://www.dice.com/",login:true,note:"Free, infrastructure/tech heavy. Good for Nutanix / VMware / storage SE roles."},
+  {name:"Glassdoor",url:"https://www.glassdoor.com/Job/index.htm",login:true,note:"Free with account. Best used for salary sanity-checks alongside a listing found elsewhere."},
+  {name:"Wellfound",url:"https://wellfound.com/jobs",login:true,note:"Free. Startup-tier roles (Cohesity, Wasabi class companies)."},
+  {name:"RepVue",url:"https://www.repvue.com/",login:true,note:"Free. Sales-org ratings, quota attainment data, and SE openings — useful diligence before interviews."},
+  {name:"YC Work at a Startup",url:"https://www.workatastartup.com/",login:true,note:"Free. Y Combinator startups hiring — early SE roles at new companies where enterprise infrastructure depth stands out."},
+  {name:"Accel Portfolio Jobs",url:"https://jobs.accel.com/jobs?q=solutions+engineer",login:false,note:"Free, no login. Roles across Accel-backed startups and growth companies (Cohesity-class and earlier stage)."},
+];
+
+// ── PERSISTENCE (localStorage overlay on the base list) ──────────────────
+const LS_KEY="jobTrackerDemo_v1";
+J.forEach(j=>j.id="b"+j.r);
+function loadStore(){
+  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
+  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]};}
+}
+let STORE=loadStore();
+function saveStore(){
+  STORE._ts=Date.now();
+  try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}
+  schedulePush();
+}
+
+function allJobs(){
+  const base=J.filter(j=>!STORE.deleted.includes(j.id)).map(j=>Object.assign({},j,STORE.edits[j.id]||{}));
+  return base.concat(STORE.custom.filter(j=>!STORE.deleted.includes(j.id)));
+}
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+function isArch(id){return STORE.archived.includes(id);}
+
+const STATUSES=[["","— status —"],["applied","Applied"],["interview","Interview"],["offer","Offer"],["rejected","Rejected"]];
+
+function tl(t){
+  if(t===1)return{cls:"b1",txt:"🔥 Strong"};
+  if(t===2)return{cls:"b2",txt:"✦ Good"};
+  return{cls:"b3",txt:"◈ Stretch"};
+}
+
+function renderJobs(data,containerId){
+  const el=document.getElementById(containerId)||document.querySelector(".job-list");
+  if(!data.length){el.innerHTML='<div class="empty">No roles match.</div>';return;}
+  el.innerHTML=data.map((j,i)=>{
+    const t=tl(j.tier);
+    const ne=j.tags.includes("ne")?`<span class="tag b" data-fg="loc" data-fv="ne" title="Filter: NE/Boston">NE/Boston</span>`:"";
+    const rem=j.remote?`<span class="tag r" data-fg="loc" data-fv="remote" title="Filter: Remote">Remote</span>`:`<span class="tag">On-site</span>`;
+    const typ=j.tags.includes("vendor")?`<span class="tag v" data-fg="type" data-fv="vendor" title="Filter: Vendor">Vendor</span>`:`<span class="tag" data-fg="type" data-fv="var" title="Filter: VAR/MSP">VAR/MSP</span>`;
+    const ext=j.tags.filter(x=>!["ne","vendor","var"].includes(x)).map(x=>`<span class="tag" data-fg="focus" data-fv="${x}" title="Filter: ${x.toUpperCase()}">${x.toUpperCase()}</span>`).join("");
+    const ct=(j.ctags||[]).map(x=>`<span class="tag ct" data-fg="ctag" data-fv="${esc(x)}" title="Filter: ${esc(x)}">🏷 ${esc(x)}</span>`).join("");
+    const st=STORE.status[j.id]||"";
+    const opts=STATUSES.map(([v,l])=>`<option value="${v}"${v===st?" selected":""}>${l}</option>`).join("");
+    const agg=j.url?isAggregator(j.url):false;
+    const srcTag=j.url?(agg?`<span class="tag src-warn">⚠ aggregator</span>`:`<a class="tag src-ok" href="${esc(careersUrl(j.co))}" target="_blank" title="Open ${esc(j.co)}'s careers site">✓ official site</a>`):"";
+    const isNew=j.added&&(Date.now()-new Date(j.added+"T00:00:00").getTime())<3*86400e3;
+    const newTag=j.added?(isNew?`<span class="tag new">★ NEW ${esc(j.added)}</span>`:`<span class="tag">found ${esc(j.added)}</span>`):"";
+    const stat=(LINKSTAT&&j.id&&j.id[0]==="b")?LINKSTAT.jobs[j.r]:null;
+    const statTag=stat==="dead"?`<span class="tag link-dead">✗ link dead ${LINKSTAT.checked}</span>`
+      :stat==="live"?`<span class="tag link-live">link ✓ ${LINKSTAT.checked}</span>`:"";
+    const archTag=isArch(j.id)?`<span class="tag link-dead">${(STORE.autoArch||[]).includes(j.id)?"🗄 AUTO-ARCHIVED · DEAD LINK":"🗄 ARCHIVED BY YOU"}</span>`:"";
+    const verify=(agg||stat==="dead")?`<a class="al verify" href="${esc(careersUrl(j.co))}" target="_blank">${stat==="dead"?"Find current openings →":"Verify on company site →"}</a>`:"";
+    const contact=(j.contact||j.cemail)?`<span class="contact-line">👤 ${esc(j.contact||"Contact")}${j.cemail?` · <a href="mailto:${esc(j.cemail)}">${esc(j.cemail)}</a>`:""}</span>`:"";
+    return `<div class="jc" data-id="${j.id}" style="animation-delay:${i*.02}s">
+      <div class="jmain">
+        <div class="jt"><span class="jrn">#${j.r}</span>${esc(j.t)}</div>
+        <div class="jco" data-fg="company" data-fv="${esc(j.co)}" title="Filter: only ${esc(j.co)}">${esc(j.co)}</div>
+      </div>
+      <div class="jright">
+        <span class="badge ${t.cls}" data-fg="tier" data-fv="${j.tier}" title="Filter: ${t.txt}">${t.txt}</span>
+        <div class="mrow"><div class="mbar"><div class="mfill" style="width:${j.m}%"></div></div><span>${j.m}%</span></div>
+      </div>
+      <div class="jfoot">
+        <span class="jnote">${esc(j.note)}${contact}<br><span class="src">${esc(j.src)}</span></span>
+        <div class="jact">
+          <div class="jtags">${archTag}${newTag}${typ}${ne}${rem}${ext}${ct}${srcTag}${statTag}</div>
+          <div class="card-controls">
+            <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
+            <button class="icon-btn" data-act="edit" data-id="${j.id}" title="Edit">✎</button>
+            ${isArch(j.id)
+              ?`<button class="icon-btn" data-act="unarch" data-id="${j.id}" title="Restore to tracker">↩ Restore</button>`
+              :`<button class="icon-btn" data-act="arch" data-id="${j.id}" title="Archive (hide but keep)">🗄</button>`}
+            <button class="icon-btn danger" data-act="del" data-id="${j.id}" title="Delete permanently">✕</button>
+          </div>
+          ${j.url?`<a class="al" href="${esc(j.url)}" target="_blank">Apply →</a>`:""}
+          ${verify}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderSources(){
+  const el=document.getElementById("sources-body");
+  const my=STORE.sources.map((s,i)=>`
+    <div class="company-card">
+      <div><span class="cc-count">${s.login?'<span class="login-tag">uses your login</span>':"link"}</span>
+      <div class="cc-name">${esc(s.name)}</div></div>
+      ${s.note?`<div class="cc-roles">${esc(s.note)}</div>`:""}
+      <div class="src-card-foot">
+        <a class="cc-link" href="${esc(s.url)}" target="_blank">Open →</a>
+        <button class="icon-btn danger" data-act="delsrc" data-i="${i}" title="Remove">✕</button>
+      </div>
+    </div>`).join("");
+  const free=FREE_SOURCES.map(s=>`
+    <div class="company-card">
+      <div><span class="cc-count">${s.login?'<span class="login-tag">uses your login</span>':"no login"}</span>
+      <div class="cc-name">${esc(s.name)}</div></div>
+      <div class="cc-roles">${esc(s.note)}</div>
+      <a class="cc-link" href="${esc(s.url)}" target="_blank">Open →</a>
+    </div>`).join("");
+  const co=COMPANIES.map(c=>`
+    <div class="company-card">
+      <div><span class="cc-count">official</span>
+      <div class="cc-name">${esc(c.name)}</div>
+      <div class="cc-type">${esc(c.type)}</div></div>
+      <a class="cc-link" href="${esc(careersUrl(c.name))}" target="_blank">Careers page →</a>
+    </div>`).join("");
+  el.innerHTML=`
+    <div class="notice">ℹ <strong>Where this data comes from:</strong> the 50 base roles are a research snapshot compiled Jul 17 2026 from ATS pages and job boards — this site does not fetch listings live. <strong>⚠ aggregator</strong> jobs were found on boards (LinkedIn / Indeed / BuiltIn) that can show closed roles: always use the Verify link. This site never stores passwords — <strong>“uses your login”</strong> just opens the site where your own browser signs you in.</div>
+    <div class="sec-h">My Sources</div>
+    <div class="src-form">
+      <input class="fin" id="s-name" type="text" placeholder="Name (e.g. My LinkedIn saved jobs)">
+      <input class="fin" id="s-url" type="url" placeholder="https://…">
+      <input class="fin" id="s-note" type="text" placeholder="Note (optional)">
+      <label class="fchk"><input type="checkbox" id="s-login" checked> Login site</label>
+      <button class="add-btn" data-act="addsrc">＋ Add</button>
+    </div>
+    <div class="src-list">${my||'<div class="empty">No personal sources yet — add your LinkedIn saved-jobs page, Indeed alert links, recruiter portals…</div>'}</div>
+    <div class="sec-h">Free Job Boards</div>
+    <div class="src-list">${free}</div>
+    <div class="sec-h">Company Careers Pages — always the ground truth</div>
+    <div class="src-list">${co}</div>
+    <div class="sec-h">Backup &amp; Move Between Devices</div>
+    <div class="notice">Your added jobs, edits, statuses, and sources are saved in this browser only. Export a backup file to keep a copy or move everything to another device, then import it there.</div>
+    <div class="src-form">
+      <button class="add-btn" data-act="exportdata">⬇ Export Backup</button>
+      <button class="btn-sec" data-act="importdata">⬆ Import Backup</button>
+      <input type="file" id="import-file" accept="application/json,.json" style="display:none">
+    </div>`;
+}
+
+let currentTab="tracker";
+let query="";
+let viewMode="review";
+
+// Link freshness — generated by scripts/check-links.mjs via a scheduled
+// GitHub Action; fails silently where the file isn't served (e.g. embedded copy).
+let LINKSTAT=null;
+// Jobs whose link is confirmed dead get archived automatically — but only
+// once each, so a deliberate Restore from the Archive tab sticks.
+function autoArchiveDead(){
+  if(!LINKSTAT)return 0;
+  if(!STORE.autoArch)STORE.autoArch=[];
+  let moved=0;
+  for(const j of J){
+    if(LINKSTAT.jobs[j.r]==="dead"&&!STORE.autoArch.includes(j.id)){
+      // Jobs you've acted on (applied/interview/offer) are never hidden by
+      // auto-archive — they stay in Applied/Pipeline showing the dead pill.
+      const st=STORE.status[j.id];
+      if(st&&st!=="rejected")continue;
+      STORE.autoArch.push(j.id);
+      if(!STORE.archived.includes(j.id)){STORE.archived.push(j.id);moved++;}
+    }
+  }
+  if(moved)saveStore();
+  return moved;
+}
+fetch("link-status.json").then(r=>r.ok?r.json():null).then(d=>{
+  if(!d)return;
+  LINKSTAT=d;
+  const moved=autoArchiveDead();
+  const n=document.querySelector("#page-tracker .notice");
+  if(n)n.innerHTML+=` Links auto-checked <strong>${d.checked}</strong>.${moved?` <strong>${moved} dead-link job${moved>1?"s":""} auto-archived</strong> — see the 🗄 Archive tab.`:""}`;
+  switchTab(currentTab);
+}).catch(()=>{});
+
+// Newest finds first (by added date, descending), then the original rank order.
+function sortJobs(list){
+  return list.slice().sort((a,b)=>{
+    const ad=a.added||"",bd=b.added||"";
+    if(ad!==bd)return ad>bd?-1:1;
+    return a.r-b.r;
+  });
+}
+
+function matchesSearch(j){
+  if(!query)return true;
+  const hay=`${j.t} ${j.co} ${j.note} ${j.src} ${j.contact||""} ${j.cemail||""} ${j.tags.join(" ")} ${(j.ctags||[]).join(" ")}`.toLowerCase();
+  return query.split(/\s+/).every(w=>hay.includes(w));
+}
+
+function companyMatches(c){
+  if(!query)return true;
+  const hay=`${c.name} ${c.type||""} ${c.roles||""}`.toLowerCase();
+  return query.split(/\s+/).every(w=>hay.includes(w));
+}
+
+// Company-name normalizer for duplicate detection: lowercase, strip
+// punctuation and common corporate suffixes so "Dell Technologies, Inc."
+// and "dell" collide.
+function normCo(s){
+  let n=String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  for(;;){
+    const m=n.match(/(incorporated|technologies|technology|corporation|systems|software|solutions|holdings|group|corp|inc|llc|ltd|co)$/);
+    if(!m||n.length-m[1].length<4)break;
+    n=n.slice(0,-m[1].length);
+  }
+  return n;
+}
+function coTracked(name){
+  const n=normCo(name);
+  if(!n)return true;
+  const known=[...COMPANIES.map(c=>c.name),...(STORE.companies||[]).map(c=>c.name),...allJobs().map(j=>j.co)];
+  return known.some(k=>{
+    const kn=normCo(k);
+    return kn===n||(n.length>=4&&kn.includes(n))||(kn.length>=4&&n.includes(kn));
+  });
+}
+
+function renderCompanies(){
+  const mine=(STORE.companies||[]).filter(companyMatches).map((c,i)=>`
+    <div class="company-card">
+      <div><span class="cc-count">watch-list</span>
+      <div class="cc-name">${esc(c.name)}</div>
+      <div class="cc-type">Added by you · ${esc(c.added||"")}</div></div>
+      <div class="src-card-foot">
+        <a class="cc-link" href="${esc(c.url||careersUrl(c.name))}" target="_blank">View openings →</a>
+        <button class="icon-btn danger" data-act="delco" data-i="${i}" title="Remove">✕</button>
+      </div>
+    </div>`).join("");
+  const base=COMPANIES.filter(companyMatches).map(c=>`
+    <div class="company-card">
+      <div><span class="cc-count">${c.count} role${c.count>1?"s":""}</span>
+      <div class="cc-name">${c.name}</div>
+      <div class="cc-type">${c.type}</div></div>
+      <div class="cc-roles">${c.roles}</div>
+      <a class="cc-link" href="${c.url}" target="_blank">View openings →</a>
+    </div>`).join("");
+  document.getElementById("company-grid").innerHTML=(mine+base)||'<div class="empty">No companies match your search.</div>';
+}
+
+function updateStats(data){
+  document.getElementById("s-tot").textContent=data.length;
+  document.getElementById("s-t1").textContent=data.filter(j=>j.tier===1).length;
+  document.getElementById("s-ne").textContent=data.filter(j=>j.tags.includes("ne")).length;
+  document.getElementById("s-rem").textContent=data.filter(j=>j.remote).length;
+}
+
+function updateCounts(){
+  const ALL=allJobs();
+  const A=ALL.filter(j=>!isArch(j.id));
+  const B=A.filter(j=>!STORE.status[j.id]);
+  document.getElementById("tc-all").textContent=B.length;
+  document.getElementById("tc-pipe").textContent=ALL.filter(j=>STORE.status[j.id]).length;
+  document.getElementById("tc-applied").textContent=ALL.filter(j=>STORE.status[j.id]==="applied").length;
+  document.getElementById("tc-arch").textContent=ALL.filter(j=>isArch(j.id)).length;
+}
+
+// ── SIDEBAR FILTERS & PAGINATION ─────────────────────────────────────────
+const FILTERS={tier:new Set(),type:new Set(),focus:new Set(),loc:new Set(),ctag:new Set(),fresh:"all",live:"all",company:""};
+function applyFilters(list){
+  return list.filter(j=>{
+    if(FILTERS.company&&j.co!==FILTERS.company)return false;
+    if(FILTERS.tier.size&&!FILTERS.tier.has(String(j.tier)))return false;
+    if(FILTERS.type.size&&![...FILTERS.type].some(t=>j.tags.includes(t)))return false;
+    if(FILTERS.focus.size&&![...FILTERS.focus].some(t=>j.tags.includes(t)))return false;
+    if(FILTERS.loc.size&&![...FILTERS.loc].some(v=>v==="remote"?j.remote:j.tags.includes("ne")))return false;
+    if(FILTERS.ctag.size&&![...FILTERS.ctag].some(t=>(j.ctags||[]).includes(t)))return false;
+    if(FILTERS.fresh!=="all"){
+      if(!j.added)return false;
+      if(Date.now()-new Date(j.added+"T00:00:00").getTime()>FILTERS.fresh*86400e3)return false;
+    }
+    if(FILTERS.live==="live"){
+      const s=(LINKSTAT&&j.id&&j.id[0]==="b")?LINKSTAT.jobs[j.r]:null;
+      if(s!=="live")return false;
+    }
+    return true;
+  });
+}
+function syncChipUI(){
+  document.querySelectorAll(".chips").forEach(g=>{
+    const grp=g.dataset.group;
+    g.querySelectorAll(".fb").forEach(c=>{
+      if(g.dataset.single)c.classList.toggle("active",String(FILTERS[grp])===c.dataset.val);
+      else c.classList.toggle("active",FILTERS[grp].has(c.dataset.val));
+    });
+  });
+}
+
+function populateCtagChips(){
+  const wrap=document.querySelector('.chips[data-group="ctag"]');
+  // union with currently-selected tags so an active filter never becomes invisible
+  const tags=[...new Set(allJobs().flatMap(j=>j.ctags||[]).concat([...FILTERS.ctag]))].sort((a,b)=>a.localeCompare(b));
+  document.getElementById("ctag-h").style.display=tags.length?"":"none";
+  wrap.innerHTML=tags.map(t=>`<button class="fb${FILTERS.ctag.has(t)?" active":""}" data-val="${esc(t)}">🏷 ${esc(t)}</button>`).join("");
+}
+
+let companyOptCount=0;
+function populateCompanyFilter(){
+  const sel=document.getElementById("company-filter");
+  const cos=[...new Set(allJobs().map(j=>j.co))].sort((a,b)=>a.localeCompare(b));
+  if(cos.length===companyOptCount)return;
+  companyOptCount=cos.length;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All companies</option>'+cos.map(c=>`<option value="${esc(c)}"${c===cur?" selected":""}>${esc(c)}</option>`).join("");
+}
+
+let pageSize=parseInt(localStorage.getItem("pageSize")||"24",10);
+let curPage=1;
+function renderPager(pageEl,total,pages){
+  let pg=pageEl.querySelector(".pager");
+  if(!pg){pg=document.createElement("div");pg.className="pager";pageEl.appendChild(pg);}
+  pg.innerHTML=`<span>${total} job${total===1?"":"s"}</span>`+(pages>1?
+    ` <button class="btn-sec" data-pg="prev" ${curPage<=1?"disabled":""}>‹ Prev</button>
+      <span>Page ${curPage} / ${pages}</span>
+      <button class="btn-sec" data-pg="next" ${curPage>=pages?"disabled":""}>Next ›</button>`:"");
+}
+
+const FILTER_MAP={
+  tracker:null, pipeline:"pipeline", applied:"applied", archive:"archive",
+  companies:null, sources:null, tips:null
+};
+
+function updateFilterBadge(){
+  let n=FILTERS.tier.size+FILTERS.type.size+FILTERS.focus.size+FILTERS.loc.size+FILTERS.ctag.size;
+  if(FILTERS.fresh!=="all")n++;
+  if(FILTERS.live!=="all")n++;
+  if(FILTERS.company)n++;
+  const b=document.getElementById("filter-badge");
+  b.textContent=n;
+  b.classList.toggle("on",n>0);
+}
+
+function switchTab(tabId,keepPage){
+  if(!keepPage)curPage=1;
+  currentTab=tabId;
+  updateFilterBadge();
+  populateCtagChips();
+  populateCompanyFilter();
+  // hide all pages
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelector(`[data-tab="${tabId}"]`).classList.add("active");
+
+  const pageEl=document.getElementById(`page-${tabId}`);
+  pageEl.classList.add("active");
+
+  const ALL=allJobs();
+  updateCounts();
+  if(tabId==="companies"){renderCompanies();updateStats(ALL.filter(matchesSearch));return;}
+  if(tabId==="sources"){renderSources();updateStats(ALL);return;}
+  if(tabId==="tips"){updateStats(ALL);return;}
+
+  const filter=FILTER_MAP[tabId];
+  const ACT=ALL.filter(j=>!isArch(j.id));
+  // Browsing tabs only show jobs you haven't acted on yet — once a status is
+  // set, a job lives in Pipeline/Applied instead.
+  const BROWSE=ACT.filter(j=>!STORE.status[j.id]);
+  let data;
+  if(filter==="archive") data=ALL.filter(j=>isArch(j.id));
+  else if(!filter) data=viewMode==="all"?ALL:BROWSE;
+  else if(filter==="pipeline") data=ALL.filter(j=>STORE.status[j.id]);
+  else if(filter==="applied") data=ALL.filter(j=>STORE.status[j.id]==="applied");
+  data=sortJobs(applyFilters(data.filter(matchesSearch)));
+
+  updateStats(data);
+  updateCounts();
+
+  // paginate
+  const pages=pageSize>0?Math.max(1,Math.ceil(data.length/pageSize)):1;
+  if(curPage>pages)curPage=pages;
+  const view=pageSize>0?data.slice((curPage-1)*pageSize,curPage*pageSize):data;
+
+  // render into correct container
+  let listEl=pageEl.querySelector(".job-list");
+  if(!listEl){
+    listEl=document.createElement("div");
+    listEl.className="job-list";
+    pageEl.appendChild(listEl);
+  }
+  renderJobs(view,listEl.id||(listEl.id="jl-"+tabId,listEl.id));
+  renderPager(pageEl,data.length,pages);
+}
+
+// ── JOB DETAIL POPUP ─────────────────────────────────────────────────────
+const detailOverlay=document.getElementById("detail-overlay");
+function closeDetail(){
+  if(!detailOverlay.classList.contains("open"))return;
+  detailOverlay.classList.remove("open");
+  switchTab(currentTab); // re-sync list in case status changed inside the popup
+}
+function openDetail(id){
+  const j=allJobs().find(x=>x.id===id);
+  if(!j)return;
+  const t=tl(j.tier);
+  const st=STORE.status[j.id]||"";
+  const opts=STATUSES.map(([v,l])=>`<option value="${v}"${v===st?" selected":""}>${l}</option>`).join("");
+  const stat=(LINKSTAT&&j.id[0]==="b")?LINKSTAT.jobs[j.r]:null;
+  const agg=j.url?isAggregator(j.url):false;
+  const linkTxt=stat==="live"?`✓ Confirmed live — checked ${LINKSTAT.checked}`
+    :stat==="dead"?`✗ Link dead — checked ${LINKSTAT.checked}`
+    :agg?"⚠ Aggregator link — verify on the company site before applying"
+    :j.url?"Official site link (not machine-verifiable)":"No link saved";
+  const focus=j.tags.filter(x=>!["vendor","var","ne"].includes(x)).map(x=>x.toUpperCase()).join(", ")||"—";
+  document.getElementById("detail-body").innerHTML=`
+    <h2 style="margin-bottom:2px">${esc(j.t)}</h2>
+    <div class="jco" style="margin-bottom:12px">#${j.r} · ${esc(j.co)}${isArch(j.id)?` · <span style="color:#e05a5a">${(STORE.autoArch||[]).includes(j.id)?"AUTO-ARCHIVED (dead link)":"ARCHIVED BY YOU"}</span>`:""}</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="badge ${t.cls}">${t.txt}</span>
+      <div class="mrow"><div class="mbar"><div class="mfill" style="width:${j.m}%"></div></div><span>${j.m}% match</span></div>
+      <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
+    </div>
+    <div class="d-note">${esc(j.note)}</div>
+    <div class="d-rows">
+      <span class="d-label">Type</span><span class="d-val">${j.tags.includes("vendor")?"Vendor-direct":"VAR / MSP"}</span>
+      <span class="d-label">Focus</span><span class="d-val">${esc(focus)}</span>
+      ${(j.ctags||[]).length?`<span class="d-label">My Tags</span><span class="d-val">${(j.ctags||[]).map(x=>`<span class="tag ct">🏷 ${esc(x)}</span>`).join(" ")}</span>`:""}
+      <span class="d-label">Location</span><span class="d-val">${j.remote?"Remote-friendly":"On-site"}${j.tags.includes("ne")?" · NE / Boston":""}</span>
+      <span class="d-label">Link check</span><span class="d-val">${linkTxt}</span>
+      ${j.added?`<span class="d-label">Added</span><span class="d-val">${esc(j.added)}</span>`:""}
+      ${(j.contact||j.cemail)?`<span class="d-label">Contact</span><span class="d-val">${esc(j.contact||"")}${j.cemail?` · <a href="mailto:${esc(j.cemail)}" style="color:#7ecde8">${esc(j.cemail)}</a>`:""}</span>`:""}
+      ${j.src?`<span class="d-label">Source</span><span class="d-val" style="color:var(--muted);font-size:.74rem">${esc(j.src)}</span>`:""}
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" id="detail-close">Close</button>
+      <button class="btn-sec" data-act="edit" data-id="${j.id}">✎ Edit</button>
+      ${j.url&&(agg||stat==="dead")?`<a class="btn-sec" href="${esc(careersUrl(j.co))}" target="_blank" style="color:var(--accent2)">Verify on company site</a>`:""}
+      ${j.url?`<a class="add-btn" href="${esc(j.url)}" target="_blank">Full Description / Apply →</a>`:""}
+    </div>`;
+  detailOverlay.classList.add("open");
+}
+detailOverlay.addEventListener("click",e=>{if(e.target===detailOverlay)closeDetail();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDetail();});
+
+// ── ADD / EDIT / DELETE / STATUS ─────────────────────────────────────────
+let editingId=null;
+const overlay=document.getElementById("modal-overlay");
+
+function openModal(job){
+  editingId=job?job.id:null;
+  document.getElementById("modal-title").textContent=job?"Edit Job":"Add Job";
+  document.getElementById("f-title").value=job?job.t:"";
+  document.getElementById("f-co").value=job?job.co:"";
+  document.getElementById("f-url").value=job&&job.url?job.url:"";
+  document.getElementById("f-contact").value=job&&job.contact?job.contact:"";
+  document.getElementById("f-cemail").value=job&&job.cemail?job.cemail:"";
+  document.getElementById("f-tier").value=job?String(job.tier):"2";
+  document.getElementById("f-match").value=job?job.m:80;
+  document.querySelector(`input[name="f-type"][value="${job&&job.tags.includes("var")?"var":"vendor"}"]`).checked=true;
+  document.getElementById("f-remote").checked=job?!!job.remote:true;
+  document.getElementById("f-ne").checked=job?job.tags.includes("ne"):false;
+  document.getElementById("f-bcdr").checked=job?job.tags.includes("bcdr"):false;
+  document.getElementById("f-hci").checked=job?job.tags.includes("hci"):false;
+  document.getElementById("f-storage").checked=job?job.tags.includes("storage"):false;
+  document.getElementById("f-note").value=job?job.note:"";
+  document.getElementById("f-ctags").value=job&&job.ctags?job.ctags.join(", "):"";
+  if(job)modalBox.classList.remove("quick");
+  else{
+    modalBox.classList.add("quick");
+    addSrc="Added manually";
+    document.getElementById("f-quickurl").value="";
+    document.getElementById("f-fetch-msg").textContent="";
+  }
+  overlay.classList.add("open");
+  (job?document.getElementById("f-title"):document.getElementById("f-quickurl")).focus();
+}
+function closeModal(){overlay.classList.remove("open");editingId=null;}
+
+const modalBox=document.querySelector("#modal-overlay .modal");
+let addSrc="Added manually";
+
+function slugName(s){return String(s||"").replace(/[-_]+/g," ").trim().replace(/\b\w/g,c=>c.toUpperCase());}
+function hostCompany(u){
+  const h=u.hostname.replace(/^(www|careers|jobs|apply|boards|job-boards)\./,"");
+  return slugName(h.split(".")[0]);
+}
+
+// Pull title/company/location straight from the big ATS providers — their
+// public posting APIs allow cross-origin reads from the browser.
+async function fetchJobFromUrl(url){
+  const u=new URL(url);
+  // Greenhouse: job-boards.greenhouse.io/{board}/jobs/{id} or any site with ?gh_jid=
+  let board=null,ghId=null;
+  const gm=u.pathname.match(/^\/([^/]+)\/jobs\/(\d+)/);
+  if(/(^|\.)greenhouse\.io$/.test(u.hostname)&&gm){board=gm[1];ghId=gm[2];}
+  else if(u.searchParams.get("gh_jid")){board=u.hostname.replace(/^(www|careers|jobs|apply)\./,"").split(".")[0];ghId=u.searchParams.get("gh_jid");}
+  if(board){
+    try{
+      const r=await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${ghId}`);
+      if(r.ok){const d=await r.json();return{t:d.title,co:slugName(board),loc:(d.location&&d.location.name)||"",url:d.absolute_url||url};}
+    }catch(e){}
+  }
+  if(u.hostname==="jobs.lever.co"){
+    const p=u.pathname.split("/").filter(Boolean);
+    if(p.length>=2){
+      try{
+        const r=await fetch(`https://api.lever.co/v0/postings/${p[0]}/${p[1]}`);
+        if(r.ok){const d=await r.json();return{t:d.text,co:slugName(p[0]),loc:(d.categories&&d.categories.location)||"",url};}
+      }catch(e){}
+    }
+  }
+  if(u.hostname==="jobs.ashbyhq.com"){
+    const p=u.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+    if(p.length>=2){
+      try{
+        const r=await fetch(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(p[0])}`);
+        if(r.ok){const d=await r.json();const job=(d.jobs||[]).find(x=>x.id===p[1]);
+          if(job)return{t:job.title,co:d.organizationName||slugName(p[0]),loc:job.location||"",url:job.jobUrl||url};}
+      }catch(e){}
+    }
+  }
+  if(u.hostname==="jobs.smartrecruiters.com"){
+    const p=u.pathname.split("/").filter(Boolean);
+    if(p.length>=2){
+      const id=(p[1].match(/^(\d+)/)||[])[1];
+      if(id){
+        try{
+          const r=await fetch(`https://api.smartrecruiters.com/v1/companies/${p[0]}/postings/${id}`);
+          if(r.ok){const d=await r.json();return{t:d.name,co:(d.company&&d.company.name)||slugName(p[0]),loc:d.location?[d.location.city,d.location.region].filter(Boolean).join(", "):"",url};}
+        }catch(e){}
+      }
+    }
+  }
+  return null;
+}
+
+// Last-ditch info extraction: most job URLs carry the title as a slug
+// (…/senior-solutions-engineer-boston-4521). Pull the longest wordy path
+// segment, strip ids, and title-case it.
+function titleFromSlug(url){
+  try{
+    const segs=new URL(url).pathname.split("/").filter(Boolean).map(decodeURIComponent);
+    let best="";
+    for(const seg of segs){
+      const s=seg.replace(/\.(html?|aspx|php)$/i,"")
+        .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/ig,"")
+        .replace(/\b\d{3,}\b/g,"")
+        .replace(/[-_+]+/g," ").replace(/\s+/g," ").trim();
+      if(!/^[a-z0-9 ,&()/']+$/i.test(s))continue;
+      if(/^(job|jobs|career|careers|position|positions|opening|openings|search|apply|view|detail|job detail|current openings|en|us|en us)$/i.test(s))continue;
+      if(s.split(" ").filter(w=>/[a-z]{2,}/i.test(w)).length<2)continue;
+      if(s.length>best.length)best=s;
+    }
+    return best?best.replace(/\b\w/g,c=>c.toUpperCase()).replace(/\b(And|Of|The|For|To|In|At|A|An)\b/g,w=>w.toLowerCase()):"";
+  }catch(e){return "";}
+}
+// "Senior SE at Rubrik" slugs (LinkedIn-style) → split into title + company.
+function slugGuess(url){
+  const t=titleFromSlug(url);
+  const m=t.match(/^(.*\S)\s+at\s+(\S.*)$/i);
+  return m?{t:m[1],co:m[2].replace(/\b\w/g,c=>c.toUpperCase())}:{t,co:""};
+}
+
+// Guess the card tags from the fetched title + location, same taxonomy as the rest of the list.
+function guessMeta(title,loc){
+  const s=(title+" "+loc).toLowerCase(),l=loc.toLowerCase();
+  return{
+    bcdr:/bcdr|backup|recover|resilien|data protection|cyber.?recovery|business continuity/.test(s),
+    hci:/\bhci\b|hyperconverg|virtualiz|vmware|nutanix|hypervisor/.test(s),
+    storage:/storage|\bsan\b|\bnas\b|flash|object stor|block stor/.test(s),
+    ne:/boston|massachusett|\bma\b|new england|hartford|connecticut|new hampshire|rhode island|vermont|maine/.test(l),
+    remote:/remote|anywhere|distributed|united states|\busa?\b/.test(l),
+  };
+}
+
+function applyQuickResult(res,url){
+  document.getElementById("f-url").value=(res&&res.url)||url;
+  if(res){
+    document.getElementById("f-title").value=res.t||"";
+    document.getElementById("f-co").value=res.co||"";
+    const g=guessMeta(res.t||"",res.loc||"");
+    document.getElementById("f-bcdr").checked=g.bcdr;
+    document.getElementById("f-hci").checked=g.hci;
+    document.getElementById("f-storage").checked=g.storage;
+    document.getElementById("f-ne").checked=g.ne;
+    document.getElementById("f-remote").checked=g.remote;
+    if(res.loc&&!document.getElementById("f-note").value)document.getElementById("f-note").value="📍 "+res.loc;
+    addSrc="Added via job link · verified on posting "+new Date().toISOString().slice(0,10);
+  }
+  modalBox.classList.remove("quick");
+  document.getElementById("f-title").focus();
+}
+
+// Fill the form from a link: ATS API first, URL-slug text second.
+// Returns "api" | "slug" | "none".
+async function fillFromLink(url){
+  const res=await fetchJobFromUrl(url);
+  if(res){applyQuickResult(res,url);return "api";}
+  const u=new URL(url);
+  const sg=slugGuess(url);
+  applyQuickResult(null,url);
+  if(sg.t){
+    document.getElementById("f-title").value=sg.t;
+    const g=guessMeta(sg.t,"");
+    document.getElementById("f-bcdr").checked=g.bcdr;
+    document.getElementById("f-hci").checked=g.hci;
+    document.getElementById("f-storage").checked=g.storage;
+    if(/boston|new england|hartford/i.test(sg.t))document.getElementById("f-ne").checked=true;
+    addSrc="Added via job link";
+  }
+  const co=sg.co||(isAggregator(url)?"":hostCompany(u));
+  if(co)document.getElementById("f-co").value=co;
+  return sg.t?"slug":"none";
+}
+
+async function quickFetch(){
+  const raw=document.getElementById("f-quickurl").value.trim();
+  const msg=document.getElementById("f-fetch-msg");
+  if(!raw){msg.textContent="Paste a job posting URL first.";return;}
+  let u;try{u=new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw);}catch(e){msg.textContent="That doesn't look like a URL.";return;}
+  const url=u.href,agg=isAggregator(url);
+  msg.textContent="Fetching…";
+  const how=await fillFromLink(url);
+  msg.textContent=how==="api"?""
+    :how==="slug"?(agg?"⚠ Aggregator link — details read from the link text; double-check them, and swap in the employer's own posting if you can."
+                      :"Read what I could from the link text — double-check before saving.")
+    :(agg?"⚠ Aggregator link (LinkedIn / Indeed / …) — can't read it. Fill in the details, or paste the employer's own posting instead."
+         :"Couldn't auto-read that site — company guessed from the link, add the title yourself.");
+}
+document.getElementById("f-fetch").addEventListener("click",quickFetch);
+document.getElementById("f-quickurl").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();quickFetch();}});
+// pasting a link fetches immediately — no need to click Fetch
+document.getElementById("f-quickurl").addEventListener("paste",()=>setTimeout(quickFetch,80));
+// pasting into the plain URL field (manual add) auto-fills too, but only empty fields
+document.getElementById("f-url").addEventListener("paste",()=>setTimeout(async()=>{
+  if(editingId||document.getElementById("f-title").value.trim())return;
+  const raw=document.getElementById("f-url").value.trim();
+  try{await fillFromLink(new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw).href);}catch(e){}
+},80));
+document.getElementById("f-manual").addEventListener("click",()=>{
+  const raw=document.getElementById("f-quickurl").value.trim();
+  if(raw)document.getElementById("f-url").value=/^https?:\/\//i.test(raw)?raw:"https://"+raw;
+  modalBox.classList.remove("quick");
+  document.getElementById("f-title").focus();
+});
+
+function saveModal(){
+  const t=document.getElementById("f-title").value.trim();
+  const co=document.getElementById("f-co").value.trim();
+  if(!t||!co){alert("Job title and company are required.");return;}
+  const tags=[document.querySelector('input[name="f-type"]:checked').value];
+  if(document.getElementById("f-ne").checked)tags.push("ne");
+  if(document.getElementById("f-bcdr").checked)tags.push("bcdr");
+  if(document.getElementById("f-hci").checked)tags.push("hci");
+  if(document.getElementById("f-storage").checked)tags.push("storage");
+  const fields={
+    t,co,tags,
+    url:document.getElementById("f-url").value.trim(),
+    contact:document.getElementById("f-contact").value.trim(),
+    cemail:document.getElementById("f-cemail").value.trim(),
+    tier:parseInt(document.getElementById("f-tier").value,10),
+    m:Math.max(0,Math.min(100,parseInt(document.getElementById("f-match").value,10)||0)),
+    remote:document.getElementById("f-remote").checked,
+    note:document.getElementById("f-note").value.trim(),
+    ctags:[...new Set(document.getElementById("f-ctags").value.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean))]
+  };
+  if(editingId){
+    const custom=STORE.custom.find(c=>c.id===editingId);
+    if(custom)Object.assign(custom,fields);
+    else STORE.edits[editingId]=Object.assign(STORE.edits[editingId]||{},fields);
+  }else{
+    const maxR=allJobs().reduce((mx,j)=>Math.max(mx,j.r),0);
+    STORE.custom.push(Object.assign({id:"c"+Date.now(),r:maxR+1,src:addSrc,added:new Date().toISOString().slice(0,10)},fields));
+  }
+  saveStore();
+  closeModal();
+  switchTab(currentTab);
+}
+
+document.getElementById("add-job").addEventListener("click",()=>openModal(null));
+document.getElementById("co-name").addEventListener("keydown",e=>{if(e.key==="Enter")document.querySelector('[data-act="addco"]').click();});
+document.getElementById("modal-cancel").addEventListener("click",closeModal);
+document.getElementById("modal-save").addEventListener("click",saveModal);
+overlay.addEventListener("click",e=>{if(e.target===overlay)closeModal();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay.classList.contains("open"))closeModal();});
+
+document.addEventListener("click",e=>{
+  if(e.target.id==="detail-close"){closeDetail();return;}
+  const pg=e.target.closest("[data-pg]");
+  if(pg&&!pg.disabled){
+    curPage+=pg.dataset.pg==="next"?1:-1;
+    switchTab(currentTab,true);
+    window.scrollTo({top:0,behavior:"smooth"});
+    return;
+  }
+  const ft=e.target.closest("[data-fg]");
+  if(ft&&ft.closest(".jc")){
+    const g=ft.dataset.fg,v=ft.dataset.fv;
+    if(g==="company"){
+      FILTERS.company=FILTERS.company===v?"":v;
+      document.getElementById("company-filter").value=FILTERS.company;
+    }else{
+      FILTERS[g].has(v)?FILTERS[g].delete(v):FILTERS[g].add(v);
+    }
+    syncChipUI();
+    switchTab(currentTab);
+    return;
+  }
+  const btn=e.target.closest("[data-act]");
+  if(!btn){
+    const card=e.target.closest(".jc");
+    if(card&&card.dataset.id&&!e.target.closest("a,button,select"))openDetail(card.dataset.id);
+    return;
+  }
+  if(btn.dataset.act==="addsrc"){
+    const name=document.getElementById("s-name").value.trim();
+    let url=document.getElementById("s-url").value.trim();
+    if(!name||!url){alert("Source name and URL are required.");return;}
+    if(!/^https?:\/\//i.test(url))url="https://"+url;
+    STORE.sources.push({name,url,note:document.getElementById("s-note").value.trim(),login:document.getElementById("s-login").checked});
+    saveStore();
+    renderSources();
+    return;
+  }
+  if(btn.dataset.act==="delsrc"){
+    STORE.sources.splice(parseInt(btn.dataset.i,10),1);
+    saveStore();
+    renderSources();
+    return;
+  }
+  if(btn.dataset.act==="addco"){
+    const raw=document.getElementById("co-name").value;
+    let url=document.getElementById("co-url").value.trim();
+    if(url&&!/^https?:\/\//i.test(url))url="https://"+url;
+    const names=[...new Map(raw.split(",").map(s=>s.trim()).filter(Boolean).map(n=>[normCo(n),n])).values()];
+    const msg=document.getElementById("co-msg");
+    if(!names.length){msg.textContent="Enter a company name.";return;}
+    let added=0;const skipped=[];
+    names.forEach(n=>{
+      if(coTracked(n)){skipped.push(n);return;}
+      STORE.companies.push({name:n,url:names.length===1?url:"",added:new Date().toISOString().slice(0,10)});
+      added++;
+    });
+    if(added){saveStore();document.getElementById("co-name").value="";document.getElementById("co-url").value="";}
+    msg.textContent=[added?`✓ added ${added}`:"",skipped.length?`skipped already tracked: ${skipped.join(", ")}`:""].filter(Boolean).join(" · ");
+    renderCompanies();
+    return;
+  }
+  if(btn.dataset.act==="delco"){
+    STORE.companies.splice(parseInt(btn.dataset.i,10),1);
+    saveStore();
+    renderCompanies();
+    return;
+  }
+  if(btn.dataset.act==="exportdata"){
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(STORE,null,2)],{type:"application/json"}));
+    a.download="job-tracker-backup.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    return;
+  }
+  if(btn.dataset.act==="importdata"){
+    document.getElementById("import-file").click();
+    return;
+  }
+  const id=btn.dataset.id;
+  const job=allJobs().find(j=>j.id===id);
+  if(!job)return;
+  if(btn.dataset.act==="edit"){detailOverlay.classList.remove("open");openModal(job);}
+  else if(btn.dataset.act==="arch"){
+    STORE.archived.push(id);
+    saveStore();
+    switchTab(currentTab);
+  }
+  else if(btn.dataset.act==="unarch"){
+    STORE.archived=STORE.archived.filter(a=>a!==id);
+    saveStore();
+    switchTab(currentTab);
+  }
+  else if(btn.dataset.act==="del"&&confirm(`Permanently delete "${job.t}" (${job.co})? Use Archive instead if you might want it back.`)){
+    if(STORE.custom.some(c=>c.id===id))STORE.custom=STORE.custom.filter(c=>c.id!==id);
+    else STORE.deleted.push(id);
+    delete STORE.status[id];
+    STORE.archived=STORE.archived.filter(a=>a!==id);
+    saveStore();
+    switchTab(currentTab);
+  }
+});
+
+document.addEventListener("change",e=>{
+  if(e.target.id==="import-file"){
+    const f=e.target.files[0];
+    if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const d=JSON.parse(r.result);
+        if(typeof d!=="object"||d===null)throw new Error("bad");
+        STORE=Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[]},d);
+        saveStore();
+        switchTab(currentTab);
+        alert("Backup imported — your jobs, statuses, and sources are restored.");
+      }catch(err){alert("That file isn't a valid tracker backup (expected the exported .json file).");}
+    };
+    r.readAsText(f);
+    e.target.value="";
+    return;
+  }
+  const sel=e.target.closest(".status-sel");
+  if(!sel)return;
+  const id=sel.dataset.id;
+  if(sel.value)STORE.status[id]=sel.value;
+  else delete STORE.status[id];
+  saveStore();
+  sel.className="status-sel st-"+(sel.value||"none");
+  // Re-render unless the change came from inside the detail popup (the list
+  // refreshes when the popup closes).
+  if(!detailOverlay.contains(sel))switchTab(currentTab);
+  else updateCounts();
+});
+
+// ── CLOUD SYNC (Supabase) ────────────────────────────────────────────────
+// The publishable key below is safe to embed: it only grants access allowed
+// by row-level security, which restricts every row to its signed-in owner.
+const SB_URL="https://ifdhlrfvxwufkupdqegy.supabase.co";
+const SB_KEY="sb_publishable_Uxuk0gy0tWkmOE9E9hbIWA_q5DqLuK1";
+let sb=null,sbUser=null,pushTimer=null;
+/* demo build: cloud sync disabled */
+
+const syncBtn=document.getElementById("sync-btn");
+const syncOverlay=document.getElementById("sync-overlay");
+function syncMsg(t,err){
+  const el=document.getElementById(sbUser?"sync-msg2":"sync-msg");
+  el.textContent=t||"";
+  el.style.color=err?"#e05a5a":"var(--accent)";
+}
+function syncLabel(){
+  if(sbUser){
+    syncBtn.textContent="☁ "+sbUser.email;
+    syncBtn.title="Cloud sync is on — linked to "+sbUser.email;
+    syncBtn.style.color="var(--accent)";
+    syncBtn.style.borderColor="var(--accent)";
+  }else{
+    syncBtn.textContent="☁ Sync";
+    syncBtn.title="Sync your data across devices";
+    syncBtn.style.color="";
+    syncBtn.style.borderColor="";
+  }
+}
+function refreshSyncModal(){
+  document.getElementById("sync-out").style.display=sbUser?"none":"block";
+  document.getElementById("sync-in").style.display=sbUser?"block":"none";
+  if(sbUser)document.getElementById("sync-who").textContent="Signed in as "+sbUser.email;
+}
+async function pushRemote(){
+  if(!sb||!sbUser)return;
+  try{
+    const {error}=await sb.from("tracker_data").upsert({user_id:sbUser.id,data:STORE,updated_at:new Date().toISOString()});
+    if(error)throw error;
+    syncMsg("Saved to cloud at "+new Date().toLocaleTimeString());
+  }catch(e){syncMsg("Cloud save failed: "+(e.message||e),true);}
+}
+function schedulePush(){
+  if(!sb||!sbUser)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushRemote,400);
+}
+// Flush pending saves when leaving; pull fresh data when returning.
+document.addEventListener("visibilitychange",()=>{
+  if(!sb||!sbUser)return;
+  if(document.visibilityState==="hidden"){clearTimeout(pushTimer);pushRemote();}
+  else pullAndMerge();
+});
+window.addEventListener("pagehide",()=>{
+  if(sb&&sbUser){clearTimeout(pushTimer);pushRemote();}
+});
+// True union merge — neither side can wipe the other. Per-job statuses and
+// edits: the side with the newer overall timestamp wins conflicts; lists
+// (custom jobs, archived, deleted, sources) are unioned.
+function mergeStores(a,b){
+  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]};
+  const A=Object.assign({},D,a),B=Object.assign({},D,b);
+  const newer=(A._ts||0)>=(B._ts||0)?A:B;
+  const older=newer===A?B:A;
+  const byId={};[...older.custom,...newer.custom].forEach(c=>{if(c&&c.id)byId[c.id]=c;});
+  const srcKey={};[...older.sources,...newer.sources].forEach(s=>{if(s&&s.url)srcKey[s.name+"|"+s.url]=s;});
+  const coKey={};[...older.companies,...newer.companies].forEach(c=>{if(c&&c.name)coKey[normCo(c.name)]=c;});
+  return{
+    custom:Object.values(byId),
+    edits:Object.assign({},older.edits,newer.edits),
+    deleted:[...new Set([...older.deleted,...newer.deleted])],
+    archived:[...new Set([...older.archived,...newer.archived])],
+    autoArch:[...new Set([...older.autoArch,...newer.autoArch])],
+    status:Object.assign({},older.status,newer.status),
+    sources:Object.values(srcKey),
+    companies:Object.values(coKey),
+    _ts:Date.now()
+  };
+}
+
+async function pullAndMerge(){
+  if(!sb||!sbUser)return;
+  try{
+    const {data,error}=await sb.from("tracker_data").select("data").maybeSingle();
+    if(error)throw error;
+    const remote=data&&data.data;
+    if(remote)STORE=mergeStores(STORE,remote);
+    else STORE._ts=Date.now();
+    try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));}catch(e){}
+    switchTab(currentTab);
+    await pushRemote();
+    syncMsg("Synced ✓ "+new Date().toLocaleTimeString());
+  }catch(e){syncMsg("Cloud load failed: "+(e.message||e),true);}
+}
+
+syncBtn.addEventListener("click",()=>{
+  if(!sb){alert("Cloud sync isn't available in this embedded copy. Open the full site at nevs55.github.io/JobSearch to sync.");return;}
+  refreshSyncModal();
+  syncOverlay.classList.add("open");
+});
+document.getElementById("sync-close-out").addEventListener("click",()=>syncOverlay.classList.remove("open"));
+document.getElementById("sync-close-in").addEventListener("click",()=>syncOverlay.classList.remove("open"));
+syncOverlay.addEventListener("click",e=>{if(e.target===syncOverlay)syncOverlay.classList.remove("open");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")syncOverlay.classList.remove("open");});
+
+document.getElementById("sync-send").addEventListener("click",async()=>{
+  const email=document.getElementById("sync-email").value.trim();
+  if(!email||!email.includes("@")){syncMsg("Enter a valid email address.",true);return;}
+  syncMsg("Sending…");
+  try{
+    const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+    if(error)throw error;
+    syncMsg("Check your email and open the sign-in link on this device.");
+  }catch(e){syncMsg("Couldn't send the link: "+(e.message||e),true);}
+});
+document.getElementById("sync-signin").addEventListener("click",async()=>{
+  const email=document.getElementById("sync-email").value.trim();
+  const pass=document.getElementById("sync-pass").value;
+  if(!email||!email.includes("@")){syncMsg("Enter a valid email address.",true);return;}
+  if(!pass){syncMsg("Enter your password — or use “Email Me a Sign-In Link” if you haven't set one yet.",true);return;}
+  syncMsg("Signing in…");
+  try{
+    const {error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error)throw error;
+    document.getElementById("sync-pass").value="";
+    syncMsg("Signed in — syncing…");
+    setTimeout(()=>syncOverlay.classList.remove("open"),900);
+  }catch(e){
+    syncMsg("Sign-in failed: "+(e.message||e)+". No password yet? Use “Email Me a Sign-In Link”, then set one.",true);
+  }
+});
+document.getElementById("sync-setpass").addEventListener("click",async()=>{
+  const p=document.getElementById("sync-newpass").value;
+  if(p.length<8){syncMsg("Password needs at least 8 characters.",true);return;}
+  syncMsg("Saving password…");
+  try{
+    const {error}=await sb.auth.updateUser({password:p});
+    if(error)throw error;
+    document.getElementById("sync-newpass").value="";
+    syncMsg("Password saved ✓ — from now on just type email + password to sign in on any device.");
+    setTimeout(()=>syncOverlay.classList.remove("open"),1400);
+  }catch(e){syncMsg("Couldn't save password: "+(e.message||e),true);}
+});
+document.getElementById("sync-signout").addEventListener("click",async()=>{
+  try{await sb.auth.signOut();}catch(e){}
+  syncOverlay.classList.remove("open");
+});
+document.getElementById("sync-now").addEventListener("click",pullAndMerge);
+
+if(sb){
+  sb.auth.onAuthStateChange((_evt,session)=>{
+    sbUser=session?session.user:null;
+    syncLabel();
+    refreshSyncModal();
+    if(sbUser)pullAndMerge();
+  });
+}
+syncLabel();
+
+// ── ONE-CLICK RESEARCH (GitHub workflow dispatch) ────────────────────────
+// The token lives ONLY in this browser's localStorage — deliberately kept
+// out of STORE so it never syncs to the cloud or lands in backup exports.
+const GH_KEY="ghDispatchToken";
+const GH_REPO="nevs55/JobSearch";
+const researchBtn=document.getElementById("research-btn");
+const ghOverlay=document.getElementById("gh-overlay");
+let researchPoll=null;
+
+function setResearchState(state){
+  const map={
+    idle:["🧠 Research","Run an on-demand AI research sweep for new jobs"],
+    starting:["🧠 Starting…","Contacting GitHub…"],
+    running:["🧠 Researching…","Claude is sweeping for new jobs — takes ~15-25 min. Safe to leave this page."],
+    done:["✅ Done — click to reload","Research finished. Click to reload and see new jobs."]
+  };
+  researchBtn.textContent=map[state][0];
+  researchBtn.title=map[state][1];
+  researchBtn.dataset.state=state;
+  researchBtn.style.color=state==="done"?"var(--accent)":state==="running"?"var(--accent2)":"";
+  researchBtn.style.borderColor=researchBtn.style.color;
+}
+
+async function startResearch(){
+  const tok=localStorage.getItem(GH_KEY);
+  if(!tok){ghOverlay.classList.add("open");document.getElementById("gh-token").focus();return;}
+  setResearchState("starting");
+  try{
+    const r=await fetch(`https://api.github.com/repos/${GH_REPO}/actions/workflows/research.yml/dispatches`,{
+      method:"POST",
+      headers:{Authorization:"Bearer "+tok,Accept:"application/vnd.github+json","Content-Type":"application/json"},
+      body:JSON.stringify({ref:"main"})
+    });
+    if(r.status===204){
+      setResearchState("running");
+      const startedAt=Date.now();
+      clearInterval(researchPoll);
+      researchPoll=setInterval(async()=>{
+        try{
+          const res=await fetch(`https://api.github.com/repos/${GH_REPO}/actions/workflows/research.yml/runs?per_page=1`,{headers:{Accept:"application/vnd.github+json"}});
+          const d=await res.json();
+          const run=d.workflow_runs&&d.workflow_runs[0];
+          if(run&&new Date(run.created_at).getTime()>startedAt-120000&&run.status==="completed"){
+            clearInterval(researchPoll);
+            setResearchState("done");
+          }
+        }catch(e){}
+      },20000);
+    }else if(r.status===401||r.status===403){
+      localStorage.removeItem(GH_KEY);
+      setResearchState("idle");
+      alert("GitHub rejected the saved token (expired or wrong permissions). Let's set up a fresh one.");
+      ghOverlay.classList.add("open");
+    }else{
+      setResearchState("idle");
+      alert("Couldn't start research (GitHub returned HTTP "+r.status+"). Try again in a minute.");
+    }
+  }catch(e){
+    setResearchState("idle");
+    alert("Couldn't reach GitHub from this page. If you're viewing the embedded copy, use the full site at nevs55.github.io/JobSearch.");
+  }
+}
+
+researchBtn.addEventListener("click",()=>{
+  const s=researchBtn.dataset.state||"idle";
+  if(s==="done"){location.reload();return;}
+  if(s==="idle")startResearch();
+});
+document.getElementById("gh-cancel").addEventListener("click",()=>ghOverlay.classList.remove("open"));
+ghOverlay.addEventListener("click",e=>{if(e.target===ghOverlay)ghOverlay.classList.remove("open");});
+document.getElementById("gh-save").addEventListener("click",()=>{
+  const tok=document.getElementById("gh-token").value.trim();
+  if(!tok){alert("Paste the token first.");return;}
+  localStorage.setItem(GH_KEY,tok);
+  document.getElementById("gh-token").value="";
+  ghOverlay.classList.remove("open");
+  startResearch();
+});
+setResearchState("idle");
+
+// ── RESUME / PROFILE UPLOAD ──────────────────────────────────────────────
+const profileOverlay=document.getElementById("profile-overlay");
+function pStatus(t,err){const el=document.getElementById("profile-status");el.textContent=t||"";el.style.color=err?"#e05a5a":"var(--accent)";}
+function loadPdfJs(){
+  return new Promise((res,rej)=>{
+    if(window.pdfjsLib)return res();
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+    s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";res();};
+    s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+document.getElementById("profile-btn").addEventListener("click",async()=>{
+  profileOverlay.classList.add("open");
+  pStatus("");
+  const cur=document.getElementById("profile-current");
+  cur.textContent="Loading…";
+  try{
+    const r=await fetch("profile.md?t="+Date.now());
+    cur.textContent=r.ok?await r.text():"profile.md not found on the site yet.";
+  }catch(e){cur.textContent="Couldn't load the current profile in this copy of the site.";}
+});
+document.getElementById("profile-cancel").addEventListener("click",()=>profileOverlay.classList.remove("open"));
+profileOverlay.addEventListener("click",e=>{if(e.target===profileOverlay)profileOverlay.classList.remove("open");});
+
+document.getElementById("profile-file").addEventListener("change",async e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  try{
+    let text;
+    if(f.name.toLowerCase().endsWith(".pdf")){
+      pStatus("Extracting text from PDF…");
+      await loadPdfJs();
+      const buf=await f.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      const out=[];
+      for(let p=1;p<=pdf.numPages;p++){
+        const pg=await pdf.getPage(p);
+        const tc=await pg.getTextContent();
+        out.push(tc.items.map(i=>i.str).join(" "));
+      }
+      text=out.join("\n\n");
+    }else{
+      text=await f.text();
+    }
+    if(!text.trim())throw new Error("empty");
+    document.getElementById("profile-text").value=text.trim();
+    pStatus("Text extracted — review it below, then Save Profile.");
+  }catch(err){
+    pStatus("Couldn't read that file — if it's a Word doc or scanned PDF, paste the text into the box instead.",true);
+  }
+  e.target.value="";
+});
+
+function b64utf8(s){
+  const bytes=new TextEncoder().encode(s);
+  let bin="";
+  bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin);
+}
+
+document.getElementById("profile-save").addEventListener("click",async()=>{
+  const tok=localStorage.getItem(GH_KEY);
+  if(!tok){profileOverlay.classList.remove("open");ghOverlay.classList.add("open");return;}
+  const resume=document.getElementById("profile-text").value.trim();
+  if(!resume){pStatus("Upload a file or paste your resume text first.",true);return;}
+  const today=new Date().toISOString().slice(0,10);
+  const content=`# Search Profile — Erik Neville\n\nUpdated: ${today} (resume uploaded from the tracker site)\n\n## Instructions to the research agent\n\nDerive the target roles, seniority, locations, and focus areas primarily from the resume below. Keep the preference for Remote-US or Greater Boston / New England unless the resume states otherwise. Prefer strong fits (tier 1); include good adjacent fits (tier 2) and worthwhile stretches (tier 3).\n\n## Resume\n\n${resume}\n`;
+  pStatus("Saving to GitHub…");
+  try{
+    const hdrs={Authorization:"Bearer "+tok,Accept:"application/vnd.github+json","Content-Type":"application/json"};
+    let sha=null;
+    const g=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/profile.md?ref=main`,{headers:hdrs});
+    if(g.status===200)sha=(await g.json()).sha;
+    const body={message:"Update search profile / resume from tracker site",content:b64utf8(content),branch:"main"};
+    if(sha)body.sha=sha;
+    const r=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/profile.md`,{method:"PUT",headers:hdrs,body:JSON.stringify(body)});
+    if(r.ok){
+      pStatus("Profile saved ✓ — future research runs will use your resume.");
+      if(confirm("Profile saved! Run a research sweep right now with your new criteria?")){
+        profileOverlay.classList.remove("open");
+        startResearch();
+      }
+    }else if(r.status===403||r.status===404){
+      pStatus("Your GitHub token can't write files. Edit it on GitHub (Settings → Developer settings → Fine-grained tokens) and add Contents: Read and write, then Save again.",true);
+    }else{
+      pStatus("GitHub error HTTP "+r.status+" — try again in a minute.",true);
+    }
+  }catch(e){
+    pStatus("Couldn't reach GitHub from this page — use the full site at nevs55.github.io/JobSearch.",true);
+  }
+});
+
+// init
+document.getElementById("page-size").value=String(pageSize);
+populateCompanyFilter();
+// restore collapsed/expanded sidebar groups (0 = closed, default open)
+let sgState={};
+try{sgState=JSON.parse(localStorage.getItem("sideGroups_v1"))||{};}catch(err){}
+document.querySelectorAll(".sgroup").forEach(g=>{if(sgState[g.dataset.sg]===0)g.classList.add("closed");});
+switchTab("tracker");
+
+document.querySelector(".tab-bar").addEventListener("click",e=>{
+  if(e.target.id==="clear-filters"){
+    FILTERS.tier.clear();FILTERS.type.clear();FILTERS.focus.clear();FILTERS.loc.clear();FILTERS.ctag.clear();
+    FILTERS.fresh="all";FILTERS.live="all";FILTERS.company="";
+    document.getElementById("company-filter").value="";
+    document.querySelectorAll(".chips .fb").forEach(c=>c.classList.toggle("active",c.dataset.val==="all"));
+    switchTab(currentTab);
+    return;
+  }
+  const gh=e.target.closest(".sg-h");
+  if(gh){
+    const grp=gh.closest(".sgroup");
+    grp.classList.toggle("closed");
+    sgState[grp.dataset.sg]=grp.classList.contains("closed")?0:1;
+    try{localStorage.setItem("sideGroups_v1",JSON.stringify(sgState));}catch(err){}
+    return;
+  }
+  const chip=e.target.closest(".chips .fb");
+  if(chip){
+    const g=chip.closest(".chips"),grp=g.dataset.group;
+    if(g.dataset.single){
+      [...g.querySelectorAll(".fb")].forEach(c=>c.classList.remove("active"));
+      chip.classList.add("active");
+      FILTERS[grp]=chip.dataset.val==="all"?"all":(grp==="fresh"?parseInt(chip.dataset.val,10):chip.dataset.val);
+    }else{
+      chip.classList.toggle("active");
+      const v=chip.dataset.val;
+      FILTERS[grp].has(v)?FILTERS[grp].delete(v):FILTERS[grp].add(v);
+    }
+    switchTab(currentTab);
+    return;
+  }
+  const tab=e.target.closest(".tab");
+  if(!tab)return;
+  switchTab(tab.dataset.tab);
+});
+
+document.getElementById("company-filter").addEventListener("change",e=>{
+  FILTERS.company=e.target.value;
+  switchTab(currentTab);
+});
+
+document.getElementById("page-size").addEventListener("change",e=>{
+  pageSize=parseInt(e.target.value,10);
+  try{localStorage.setItem("pageSize",String(pageSize));}catch(err){}
+  switchTab(currentTab);
+});
+
+document.getElementById("view-mode").addEventListener("change",e=>{
+  viewMode=e.target.value;
+  switchTab(currentTab);
+});
+
+const searchInput=document.getElementById("search");
+const searchClear=document.getElementById("search-clear");
+searchInput.addEventListener("input",()=>{
+  query=searchInput.value.trim().toLowerCase();
+  searchClear.classList.toggle("show",query.length>0);
+  if((currentTab==="tips"||currentTab==="sources")&&query){switchTab("tracker");return;}
+  switchTab(currentTab);
+});
+searchClear.addEventListener("click",()=>{
+  searchInput.value="";
+  query="";
+  searchClear.classList.remove("show");
+  switchTab(currentTab);
+  searchInput.focus();
+});
+</script>
+</body>
+</html>

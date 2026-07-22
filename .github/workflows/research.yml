@@ -66,4 +66,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git fetch origin main
-          git push origin origin/main:gh-pages --force
+          git checkout -f origin/main
+          if node scripts/make-demo.mjs && ! git diff --quiet demo.html; then
+            git add demo.html
+            git commit -m "Regenerate demo.html"
+            git push origin HEAD:main
+          fi
+          git push origin HEAD:gh-pages --force
