@@ -34,7 +34,18 @@
   .tab{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:500;padding:10px 14px;border-radius:8px;border:1px solid transparent;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .14s;background:transparent;letter-spacing:.05em;text-transform:uppercase;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;}
   .tab:hover{color:var(--text);background:rgba(255,255,255,.04);}
   .tab.active{color:#fff;background:var(--card);border-color:var(--border);}
-  .side-h{margin:16px 4px 4px;padding-top:14px;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .sgroup{display:flex;flex-direction:column;gap:4px;}
+  .sg-h{margin:14px 4px 4px;padding-top:12px;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;}
+  .sgroup:first-child .sg-h{margin-top:0;padding-top:2px;border-top:none;}
+  .sg-h:hover{color:#fff;}
+  .sg-h .chev{display:inline-block;font-size:.58rem;transition:transform .15s;color:var(--muted);}
+  .sgroup.closed .sg-h .chev{transform:rotate(-90deg);}
+  .sg-b{display:flex;flex-direction:column;gap:4px;}
+  .sgroup.closed .sg-b{display:none;}
+  .sg-badge{margin-left:auto;background:rgba(0,212,170,.15);color:var(--accent);border-radius:10px;padding:1px 7px;font-size:.58rem;display:none;}
+  .sg-badge.on{display:inline-block;}
+  .sg-h .fb{margin-left:auto;}
+  .sg-h .sg-badge.on + .fb,.sg-h .sg-badge.on ~ .fb{margin-left:0;}
   .side-h2{margin:10px 4px 3px;font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
   .chips{display:flex;flex-wrap:wrap;gap:4px;padding:0 2px;}
   .pager{display:flex;justify-content:center;align-items:center;gap:14px;padding:20px 0 4px;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);}
@@ -45,7 +56,9 @@
     .layout{flex-direction:column;}
     .tab-bar{flex-direction:row;flex-wrap:wrap;width:100%;max-height:none;position:static;overflow-x:auto;padding:10px 12px 0;}
     .tab{flex-shrink:0;}
-    .side-h{border-top:none;width:100%;}
+    .sgroup{width:100%;}
+    .sg-h{border-top:none;margin-top:4px;padding-top:4px;}
+    .sg-b{flex-direction:row;flex-wrap:wrap;align-items:center;}
   }
   .tab .cnt{display:inline-block;background:rgba(255,255,255,.08);border-radius:10px;padding:1px 6px;font-size:.55rem;margin-left:5px;color:var(--muted);}
   .tab.active .cnt{background:rgba(0,212,170,.15);color:var(--accent);}
@@ -213,15 +226,19 @@
 
 <div class="layout">
   <div class="tab-bar">
-    <button class="tab active" data-tab="tracker">📋 All Jobs <span class="cnt" id="tc-all">—</span></button>
-    <button class="tab" data-tab="pipeline">📌 My Pipeline <span class="cnt" id="tc-pipe">—</span></button>
-    <button class="tab" data-tab="applied">✅ Applied <span class="cnt" id="tc-applied">—</span></button>
-    <button class="tab" data-tab="archive">🗄 Archive <span class="cnt" id="tc-arch">—</span></button>
-    <button class="tab" data-tab="companies">🏢 Companies</button>
-    <button class="tab" data-tab="sources">🔗 Sources</button>
-    <button class="tab" data-tab="tips">💡 Strategy</button>
+    <div class="sgroup" data-sg="jobs">
+      <div class="sg-h"><span class="chev">▾</span>Jobs</div>
+      <div class="sg-b">
+        <button class="tab active" data-tab="tracker">📋 All Jobs <span class="cnt" id="tc-all">—</span></button>
+        <button class="tab" data-tab="pipeline">📌 My Pipeline <span class="cnt" id="tc-pipe">—</span></button>
+        <button class="tab" data-tab="applied">✅ Applied <span class="cnt" id="tc-applied">—</span></button>
+        <button class="tab" data-tab="archive">🗄 Archive <span class="cnt" id="tc-arch">—</span></button>
+      </div>
+    </div>
 
-    <div class="side-h">Filter Jobs <button class="fb" id="clear-filters">✕ clear</button></div>
+    <div class="sgroup" data-sg="filters">
+      <div class="sg-h"><span class="chev">▾</span>Filters <span class="sg-badge" id="filter-badge">0</span><button class="fb" id="clear-filters">✕ clear</button></div>
+      <div class="sg-b">
     <div class="side-h2">Company</div>
     <select class="fin" id="company-filter" style="font-size:.72rem;padding:7px 8px;margin:0 2px 2px">
       <option value="">All companies</option>
@@ -259,6 +276,17 @@
     <div class="chips" data-group="live" data-single="1">
       <button class="fb active" data-val="all">Any</button>
       <button class="fb" data-val="live">✓ Verified live</button>
+    </div>
+      </div>
+    </div>
+
+    <div class="sgroup" data-sg="info">
+      <div class="sg-h"><span class="chev">▾</span>Resources</div>
+      <div class="sg-b">
+        <button class="tab" data-tab="companies">🏢 Companies</button>
+        <button class="tab" data-tab="sources">🔗 Sources</button>
+        <button class="tab" data-tab="tips">💡 Strategy</button>
+      </div>
     </div>
   </div>
 
@@ -1025,9 +1053,20 @@ const FILTER_MAP={
   companies:null, sources:null, tips:null
 };
 
+function updateFilterBadge(){
+  let n=FILTERS.tier.size+FILTERS.type.size+FILTERS.focus.size+FILTERS.loc.size;
+  if(FILTERS.fresh!=="all")n++;
+  if(FILTERS.live!=="all")n++;
+  if(FILTERS.company)n++;
+  const b=document.getElementById("filter-badge");
+  b.textContent=n;
+  b.classList.toggle("on",n>0);
+}
+
 function switchTab(tabId,keepPage){
   if(!keepPage)curPage=1;
   currentTab=tabId;
+  updateFilterBadge();
   // hide all pages
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
@@ -1631,6 +1670,10 @@ document.getElementById("profile-save").addEventListener("click",async()=>{
 // init
 document.getElementById("page-size").value=String(pageSize);
 populateCompanyFilter();
+// restore collapsed/expanded sidebar groups (0 = closed, default open)
+let sgState={};
+try{sgState=JSON.parse(localStorage.getItem("sideGroups_v1"))||{};}catch(err){}
+document.querySelectorAll(".sgroup").forEach(g=>{if(sgState[g.dataset.sg]===0)g.classList.add("closed");});
 switchTab("tracker");
 
 document.querySelector(".tab-bar").addEventListener("click",e=>{
@@ -1640,6 +1683,14 @@ document.querySelector(".tab-bar").addEventListener("click",e=>{
     document.getElementById("company-filter").value="";
     document.querySelectorAll(".chips .fb").forEach(c=>c.classList.toggle("active",c.dataset.val==="all"));
     switchTab(currentTab);
+    return;
+  }
+  const gh=e.target.closest(".sg-h");
+  if(gh){
+    const grp=gh.closest(".sgroup");
+    grp.classList.toggle("closed");
+    sgState[grp.dataset.sg]=grp.classList.contains("closed")?0:1;
+    try{localStorage.setItem("sideGroups_v1",JSON.stringify(sgState));}catch(err){}
     return;
   }
   const chip=e.target.closest(".chips .fb");
