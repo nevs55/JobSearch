@@ -341,7 +341,13 @@
 
   <!-- COMPANIES PAGE -->
   <div class="page" id="page-companies">
-    <div class="notice">All companies below have at least one confirmed open pre-sales SA / SE role matching your profile as of Jul 17 2026.</div>
+    <div class="fbar" style="margin-bottom:14px">
+      <input class="fin" id="co-name" placeholder="Company name(s) — comma-separate to add several" style="flex:2;min-width:220px">
+      <input class="fin" id="co-url" placeholder="Careers URL (optional)" style="flex:1;min-width:170px">
+      <button class="add-btn" data-act="addco">＋ Add Company</button>
+      <span class="flbl" id="co-msg" style="text-transform:none;letter-spacing:0"></span>
+    </div>
+    <div class="notice">All companies below have at least one confirmed open pre-sales SA / SE role matching your profile as of Jul 17 2026. Companies you add are watch-list entries synced to your account.</div>
     <div class="company-grid" id="company-grid"></div>
   </div>
 
@@ -803,8 +809,8 @@ const FREE_SOURCES=[
 const LS_KEY="jobTrackerData_v1";
 J.forEach(j=>j.id="b"+j.r);
 function loadStore(){
-  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
-  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[]};}
+  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
+  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]};}
 }
 let STORE=loadStore();
 function saveStore(){
@@ -983,14 +989,44 @@ function matchesSearch(j){
 
 function companyMatches(c){
   if(!query)return true;
-  const hay=`${c.name} ${c.type} ${c.roles}`.toLowerCase();
+  const hay=`${c.name} ${c.type||""} ${c.roles||""}`.toLowerCase();
   return query.split(/\s+/).every(w=>hay.includes(w));
 }
 
+// Company-name normalizer for duplicate detection: lowercase, strip
+// punctuation and common corporate suffixes so "Dell Technologies, Inc."
+// and "dell" collide.
+function normCo(s){
+  let n=String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  for(;;){
+    const m=n.match(/(incorporated|technologies|technology|corporation|systems|software|solutions|holdings|group|corp|inc|llc|ltd|co)$/);
+    if(!m||n.length-m[1].length<4)break;
+    n=n.slice(0,-m[1].length);
+  }
+  return n;
+}
+function coTracked(name){
+  const n=normCo(name);
+  if(!n)return true;
+  const known=[...COMPANIES.map(c=>c.name),...(STORE.companies||[]).map(c=>c.name),...allJobs().map(j=>j.co)];
+  return known.some(k=>{
+    const kn=normCo(k);
+    return kn===n||(n.length>=4&&kn.includes(n))||(kn.length>=4&&n.includes(kn));
+  });
+}
+
 function renderCompanies(){
-  const data=COMPANIES.filter(companyMatches);
-  if(!data.length){document.getElementById("company-grid").innerHTML='<div class="empty">No companies match your search.</div>';return;}
-  document.getElementById("company-grid").innerHTML=data.map(c=>`
+  const mine=(STORE.companies||[]).filter(companyMatches).map((c,i)=>`
+    <div class="company-card">
+      <div><span class="cc-count">watch-list</span>
+      <div class="cc-name">${esc(c.name)}</div>
+      <div class="cc-type">Added by you · ${esc(c.added||"")}</div></div>
+      <div class="src-card-foot">
+        <a class="cc-link" href="${esc(c.url||careersUrl(c.name))}" target="_blank">View openings →</a>
+        <button class="icon-btn danger" data-act="delco" data-i="${i}" title="Remove">✕</button>
+      </div>
+    </div>`).join("");
+  const base=COMPANIES.filter(companyMatches).map(c=>`
     <div class="company-card">
       <div><span class="cc-count">${c.count} role${c.count>1?"s":""}</span>
       <div class="cc-name">${c.name}</div>
@@ -998,6 +1034,7 @@ function renderCompanies(){
       <div class="cc-roles">${c.roles}</div>
       <a class="cc-link" href="${c.url}" target="_blank">View openings →</a>
     </div>`).join("");
+  document.getElementById("company-grid").innerHTML=(mine+base)||'<div class="empty">No companies match your search.</div>';
 }
 
 function updateStats(data){
@@ -1378,6 +1415,7 @@ function saveModal(){
 }
 
 document.getElementById("add-job").addEventListener("click",()=>openModal(null));
+document.getElementById("co-name").addEventListener("keydown",e=>{if(e.key==="Enter")document.querySelector('[data-act="addco"]').click();});
 document.getElementById("modal-cancel").addEventListener("click",closeModal);
 document.getElementById("modal-save").addEventListener("click",saveModal);
 overlay.addEventListener("click",e=>{if(e.target===overlay)closeModal();});
@@ -1425,6 +1463,30 @@ document.addEventListener("click",e=>{
     STORE.sources.splice(parseInt(btn.dataset.i,10),1);
     saveStore();
     renderSources();
+    return;
+  }
+  if(btn.dataset.act==="addco"){
+    const raw=document.getElementById("co-name").value;
+    let url=document.getElementById("co-url").value.trim();
+    if(url&&!/^https?:\/\//i.test(url))url="https://"+url;
+    const names=[...new Map(raw.split(",").map(s=>s.trim()).filter(Boolean).map(n=>[normCo(n),n])).values()];
+    const msg=document.getElementById("co-msg");
+    if(!names.length){msg.textContent="Enter a company name.";return;}
+    let added=0;const skipped=[];
+    names.forEach(n=>{
+      if(coTracked(n)){skipped.push(n);return;}
+      STORE.companies.push({name:n,url:names.length===1?url:"",added:new Date().toISOString().slice(0,10)});
+      added++;
+    });
+    if(added){saveStore();document.getElementById("co-name").value="";document.getElementById("co-url").value="";}
+    msg.textContent=[added?`✓ added ${added}`:"",skipped.length?`skipped already tracked: ${skipped.join(", ")}`:""].filter(Boolean).join(" · ");
+    renderCompanies();
+    return;
+  }
+  if(btn.dataset.act==="delco"){
+    STORE.companies.splice(parseInt(btn.dataset.i,10),1);
+    saveStore();
+    renderCompanies();
     return;
   }
   if(btn.dataset.act==="exportdata"){
@@ -1554,12 +1616,13 @@ window.addEventListener("pagehide",()=>{
 // edits: the side with the newer overall timestamp wins conflicts; lists
 // (custom jobs, archived, deleted, sources) are unioned.
 function mergeStores(a,b){
-  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[]};
+  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]};
   const A=Object.assign({},D,a),B=Object.assign({},D,b);
   const newer=(A._ts||0)>=(B._ts||0)?A:B;
   const older=newer===A?B:A;
   const byId={};[...older.custom,...newer.custom].forEach(c=>{if(c&&c.id)byId[c.id]=c;});
   const srcKey={};[...older.sources,...newer.sources].forEach(s=>{if(s&&s.url)srcKey[s.name+"|"+s.url]=s;});
+  const coKey={};[...older.companies,...newer.companies].forEach(c=>{if(c&&c.name)coKey[normCo(c.name)]=c;});
   return{
     custom:Object.values(byId),
     edits:Object.assign({},older.edits,newer.edits),
@@ -1568,6 +1631,7 @@ function mergeStores(a,b){
     autoArch:[...new Set([...older.autoArch,...newer.autoArch])],
     status:Object.assign({},older.status,newer.status),
     sources:Object.values(srcKey),
+    companies:Object.values(coKey),
     _ts:Date.now()
   };
 }
