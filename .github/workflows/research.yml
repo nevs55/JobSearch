@@ -55,7 +55,7 @@ jobs:
 
             Then run: node scripts/check-links.mjs
 
-            Finally commit everything with a clear message and push to origin main. Keep the diff minimal; never reformat unrelated code.
+            Finally commit everything with a clear message and push to origin main. Keep the diff minimal; never reformat unrelated code. NEVER modify an existing job's added:"YYYY-MM-DD" value — it permanently records the day that job was discovered.
 
       - name: Publish to gh-pages
         if: always()
