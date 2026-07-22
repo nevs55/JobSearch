@@ -105,6 +105,10 @@
   .tag.r{color:#f5c842;border-color:rgba(245,200,66,.2);}
   .tag.b{color:#7ecde8;border-color:rgba(126,205,232,.2);}
   .tag.v{color:#a0d9a0;border-color:rgba(160,217,160,.2);}
+  .tag.ct{color:#c9a6ff;border-color:rgba(201,166,255,.35);background:rgba(201,166,255,.07);}
+  #modal-overlay .modal.quick .frow,#modal-overlay .modal.quick .modal-actions{display:none;}
+  #modal-overlay .modal.quick #quick-row{display:flex;}
+  #modal-overlay .modal:not(.quick) #quick-row{display:none;}
   .src{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);opacity:.85;font-style:italic;}
   .al{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--accent);text-decoration:none;text-transform:uppercase;letter-spacing:.06em;opacity:.8;transition:opacity .12s;}
   .al:hover{opacity:1;text-decoration:underline;}
@@ -277,6 +281,8 @@
       <button class="fb active" data-val="all">Any</button>
       <button class="fb" data-val="live">✓ Verified live</button>
     </div>
+    <div class="side-h2" id="ctag-h" style="display:none">My Tags</div>
+    <div class="chips" data-group="ctag"></div>
       </div>
     </div>
 
@@ -501,6 +507,16 @@
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <h2 id="modal-title">Add Job</h2>
+    <div class="frow" id="quick-row">
+      <div class="fcol" style="flex:1"><span class="flab">Paste the job link — details fill in automatically</span>
+        <div style="display:flex;gap:6px">
+          <input class="fin" id="f-quickurl" type="url" placeholder="https://…  (works best with the employer's own posting)" style="flex:1">
+          <button class="add-btn" id="f-fetch">✨ Fetch</button>
+        </div>
+        <span class="flab" id="f-fetch-msg" style="text-transform:none;letter-spacing:0;margin-top:4px;min-height:1em"></span>
+        <button class="btn-sec" id="f-manual" style="align-self:flex-start;margin-top:6px">…or fill in manually</button>
+      </div>
+    </div>
     <div class="frow">
       <div class="fcol" style="flex:2"><span class="flab">Job Title *</span><input class="fin" id="f-title" type="text" placeholder="e.g. Senior Solutions Architect"></div>
       <div class="fcol"><span class="flab">Company *</span><input class="fin" id="f-co" type="text" placeholder="e.g. Nutanix"></div>
@@ -536,6 +552,9 @@
           <label class="fchk"><input type="checkbox" id="f-storage"> Storage</label>
         </div>
       </div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><span class="flab">My Tags <span style="text-transform:none;color:var(--muted)">(comma-separated)</span></span><input class="fin" id="f-ctags" type="text" placeholder="e.g. referral, follow up, dream job"></div>
     </div>
     <div class="frow">
       <div class="fcol"><span class="flab">Notes</span><textarea class="fin" id="f-note" placeholder="Why this role, comp range, next steps…"></textarea></div>
@@ -820,6 +839,7 @@ function renderJobs(data,containerId){
     const rem=j.remote?`<span class="tag r" data-fg="loc" data-fv="remote" title="Filter: Remote">Remote</span>`:`<span class="tag">On-site</span>`;
     const typ=j.tags.includes("vendor")?`<span class="tag v" data-fg="type" data-fv="vendor" title="Filter: Vendor">Vendor</span>`:`<span class="tag" data-fg="type" data-fv="var" title="Filter: VAR/MSP">VAR/MSP</span>`;
     const ext=j.tags.filter(x=>!["ne","vendor","var"].includes(x)).map(x=>`<span class="tag" data-fg="focus" data-fv="${x}" title="Filter: ${x.toUpperCase()}">${x.toUpperCase()}</span>`).join("");
+    const ct=(j.ctags||[]).map(x=>`<span class="tag ct" data-fg="ctag" data-fv="${esc(x)}" title="Filter: ${esc(x)}">🏷 ${esc(x)}</span>`).join("");
     const st=STORE.status[j.id]||"";
     const opts=STATUSES.map(([v,l])=>`<option value="${v}"${v===st?" selected":""}>${l}</option>`).join("");
     const agg=j.url?isAggregator(j.url):false;
@@ -844,7 +864,7 @@ function renderJobs(data,containerId){
       <div class="jfoot">
         <span class="jnote">${esc(j.note)}${contact}<br><span class="src">${esc(j.src)}</span></span>
         <div class="jact">
-          <div class="jtags">${archTag}${newTag}${typ}${ne}${rem}${ext}${srcTag}${statTag}</div>
+          <div class="jtags">${archTag}${newTag}${typ}${ne}${rem}${ext}${ct}${srcTag}${statTag}</div>
           <div class="card-controls">
             <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
             <button class="icon-btn" data-act="edit" data-id="${j.id}" title="Edit">✎</button>
@@ -957,7 +977,7 @@ function sortJobs(list){
 
 function matchesSearch(j){
   if(!query)return true;
-  const hay=`${j.t} ${j.co} ${j.note} ${j.src} ${j.contact||""} ${j.cemail||""} ${j.tags.join(" ")}`.toLowerCase();
+  const hay=`${j.t} ${j.co} ${j.note} ${j.src} ${j.contact||""} ${j.cemail||""} ${j.tags.join(" ")} ${(j.ctags||[]).join(" ")}`.toLowerCase();
   return query.split(/\s+/).every(w=>hay.includes(w));
 }
 
@@ -998,7 +1018,7 @@ function updateCounts(){
 }
 
 // ── SIDEBAR FILTERS & PAGINATION ─────────────────────────────────────────
-const FILTERS={tier:new Set(),type:new Set(),focus:new Set(),loc:new Set(),fresh:"all",live:"all",company:""};
+const FILTERS={tier:new Set(),type:new Set(),focus:new Set(),loc:new Set(),ctag:new Set(),fresh:"all",live:"all",company:""};
 function applyFilters(list){
   return list.filter(j=>{
     if(FILTERS.company&&j.co!==FILTERS.company)return false;
@@ -1006,6 +1026,7 @@ function applyFilters(list){
     if(FILTERS.type.size&&![...FILTERS.type].some(t=>j.tags.includes(t)))return false;
     if(FILTERS.focus.size&&![...FILTERS.focus].some(t=>j.tags.includes(t)))return false;
     if(FILTERS.loc.size&&![...FILTERS.loc].some(v=>v==="remote"?j.remote:j.tags.includes("ne")))return false;
+    if(FILTERS.ctag.size&&![...FILTERS.ctag].some(t=>(j.ctags||[]).includes(t)))return false;
     if(FILTERS.fresh!=="all"){
       if(!j.added)return false;
       if(Date.now()-new Date(j.added+"T00:00:00").getTime()>FILTERS.fresh*86400e3)return false;
@@ -1025,6 +1046,14 @@ function syncChipUI(){
       else c.classList.toggle("active",FILTERS[grp].has(c.dataset.val));
     });
   });
+}
+
+function populateCtagChips(){
+  const wrap=document.querySelector('.chips[data-group="ctag"]');
+  // union with currently-selected tags so an active filter never becomes invisible
+  const tags=[...new Set(allJobs().flatMap(j=>j.ctags||[]).concat([...FILTERS.ctag]))].sort((a,b)=>a.localeCompare(b));
+  document.getElementById("ctag-h").style.display=tags.length?"":"none";
+  wrap.innerHTML=tags.map(t=>`<button class="fb${FILTERS.ctag.has(t)?" active":""}" data-val="${esc(t)}">🏷 ${esc(t)}</button>`).join("");
 }
 
 let companyOptCount=0;
@@ -1054,7 +1083,7 @@ const FILTER_MAP={
 };
 
 function updateFilterBadge(){
-  let n=FILTERS.tier.size+FILTERS.type.size+FILTERS.focus.size+FILTERS.loc.size;
+  let n=FILTERS.tier.size+FILTERS.type.size+FILTERS.focus.size+FILTERS.loc.size+FILTERS.ctag.size;
   if(FILTERS.fresh!=="all")n++;
   if(FILTERS.live!=="all")n++;
   if(FILTERS.company)n++;
@@ -1067,6 +1096,8 @@ function switchTab(tabId,keepPage){
   if(!keepPage)curPage=1;
   currentTab=tabId;
   updateFilterBadge();
+  populateCtagChips();
+  populateCompanyFilter();
   // hide all pages
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
@@ -1144,6 +1175,7 @@ function openDetail(id){
     <div class="d-rows">
       <span class="d-label">Type</span><span class="d-val">${j.tags.includes("vendor")?"Vendor-direct":"VAR / MSP"}</span>
       <span class="d-label">Focus</span><span class="d-val">${esc(focus)}</span>
+      ${(j.ctags||[]).length?`<span class="d-label">My Tags</span><span class="d-val">${(j.ctags||[]).map(x=>`<span class="tag ct">🏷 ${esc(x)}</span>`).join(" ")}</span>`:""}
       <span class="d-label">Location</span><span class="d-val">${j.remote?"Remote-friendly":"On-site"}${j.tags.includes("ne")?" · NE / Boston":""}</span>
       <span class="d-label">Link check</span><span class="d-val">${linkTxt}</span>
       ${j.added?`<span class="d-label">Added</span><span class="d-val">${esc(j.added)}</span>`:""}
@@ -1182,10 +1214,135 @@ function openModal(job){
   document.getElementById("f-hci").checked=job?job.tags.includes("hci"):false;
   document.getElementById("f-storage").checked=job?job.tags.includes("storage"):false;
   document.getElementById("f-note").value=job?job.note:"";
+  document.getElementById("f-ctags").value=job&&job.ctags?job.ctags.join(", "):"";
+  if(job)modalBox.classList.remove("quick");
+  else{
+    modalBox.classList.add("quick");
+    addSrc="Added manually";
+    document.getElementById("f-quickurl").value="";
+    document.getElementById("f-fetch-msg").textContent="";
+  }
   overlay.classList.add("open");
-  document.getElementById("f-title").focus();
+  (job?document.getElementById("f-title"):document.getElementById("f-quickurl")).focus();
 }
 function closeModal(){overlay.classList.remove("open");editingId=null;}
+
+const modalBox=document.querySelector("#modal-overlay .modal");
+let addSrc="Added manually";
+
+function slugName(s){return String(s||"").replace(/[-_]+/g," ").trim().replace(/\b\w/g,c=>c.toUpperCase());}
+function hostCompany(u){
+  const h=u.hostname.replace(/^(www|careers|jobs|apply|boards|job-boards)\./,"");
+  return slugName(h.split(".")[0]);
+}
+
+// Pull title/company/location straight from the big ATS providers — their
+// public posting APIs allow cross-origin reads from the browser.
+async function fetchJobFromUrl(url){
+  const u=new URL(url);
+  // Greenhouse: job-boards.greenhouse.io/{board}/jobs/{id} or any site with ?gh_jid=
+  let board=null,ghId=null;
+  const gm=u.pathname.match(/^\/([^/]+)\/jobs\/(\d+)/);
+  if(/(^|\.)greenhouse\.io$/.test(u.hostname)&&gm){board=gm[1];ghId=gm[2];}
+  else if(u.searchParams.get("gh_jid")){board=u.hostname.replace(/^(www|careers|jobs|apply)\./,"").split(".")[0];ghId=u.searchParams.get("gh_jid");}
+  if(board){
+    try{
+      const r=await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${ghId}`);
+      if(r.ok){const d=await r.json();return{t:d.title,co:slugName(board),loc:(d.location&&d.location.name)||"",url:d.absolute_url||url};}
+    }catch(e){}
+  }
+  if(u.hostname==="jobs.lever.co"){
+    const p=u.pathname.split("/").filter(Boolean);
+    if(p.length>=2){
+      try{
+        const r=await fetch(`https://api.lever.co/v0/postings/${p[0]}/${p[1]}`);
+        if(r.ok){const d=await r.json();return{t:d.text,co:slugName(p[0]),loc:(d.categories&&d.categories.location)||"",url};}
+      }catch(e){}
+    }
+  }
+  if(u.hostname==="jobs.ashbyhq.com"){
+    const p=u.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+    if(p.length>=2){
+      try{
+        const r=await fetch(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(p[0])}`);
+        if(r.ok){const d=await r.json();const job=(d.jobs||[]).find(x=>x.id===p[1]);
+          if(job)return{t:job.title,co:d.organizationName||slugName(p[0]),loc:job.location||"",url:job.jobUrl||url};}
+      }catch(e){}
+    }
+  }
+  if(u.hostname==="jobs.smartrecruiters.com"){
+    const p=u.pathname.split("/").filter(Boolean);
+    if(p.length>=2){
+      const id=(p[1].match(/^(\d+)/)||[])[1];
+      if(id){
+        try{
+          const r=await fetch(`https://api.smartrecruiters.com/v1/companies/${p[0]}/postings/${id}`);
+          if(r.ok){const d=await r.json();return{t:d.name,co:(d.company&&d.company.name)||slugName(p[0]),loc:d.location?[d.location.city,d.location.region].filter(Boolean).join(", "):"",url};}
+        }catch(e){}
+      }
+    }
+  }
+  return null;
+}
+
+// Guess the card tags from the fetched title + location, same taxonomy as the rest of the list.
+function guessMeta(title,loc){
+  const s=(title+" "+loc).toLowerCase(),l=loc.toLowerCase();
+  return{
+    bcdr:/bcdr|backup|recover|resilien|data protection|cyber.?recovery|business continuity/.test(s),
+    hci:/\bhci\b|hyperconverg|virtualiz|vmware|nutanix|hypervisor/.test(s),
+    storage:/storage|\bsan\b|\bnas\b|flash|object stor|block stor/.test(s),
+    ne:/boston|massachusett|\bma\b|new england|hartford|connecticut|new hampshire|rhode island|vermont|maine/.test(l),
+    remote:/remote|anywhere|distributed|united states|\busa?\b/.test(l),
+  };
+}
+
+function applyQuickResult(res,url){
+  document.getElementById("f-url").value=(res&&res.url)||url;
+  if(res){
+    document.getElementById("f-title").value=res.t||"";
+    document.getElementById("f-co").value=res.co||"";
+    const g=guessMeta(res.t||"",res.loc||"");
+    document.getElementById("f-bcdr").checked=g.bcdr;
+    document.getElementById("f-hci").checked=g.hci;
+    document.getElementById("f-storage").checked=g.storage;
+    document.getElementById("f-ne").checked=g.ne;
+    document.getElementById("f-remote").checked=g.remote;
+    if(res.loc&&!document.getElementById("f-note").value)document.getElementById("f-note").value="📍 "+res.loc;
+    addSrc="Added via job link · verified on posting "+new Date().toISOString().slice(0,10);
+  }
+  modalBox.classList.remove("quick");
+  document.getElementById("f-title").focus();
+}
+
+async function quickFetch(){
+  const raw=document.getElementById("f-quickurl").value.trim();
+  const msg=document.getElementById("f-fetch-msg");
+  if(!raw){msg.textContent="Paste a job posting URL first.";return;}
+  let u;try{u=new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw);}catch(e){msg.textContent="That doesn't look like a URL.";return;}
+  const url=u.href;
+  if(isAggregator(url)){
+    msg.textContent="⚠ That's an aggregator link (LinkedIn / Indeed / …) — can't read it directly. Fill in the details, or paste the employer's own posting instead.";
+    applyQuickResult(null,url);
+    return;
+  }
+  msg.textContent="Fetching…";
+  const res=await fetchJobFromUrl(url);
+  if(res){msg.textContent="";applyQuickResult(res,url);}
+  else{
+    msg.textContent="Couldn't auto-read that site — company guessed from the link, add the title yourself.";
+    applyQuickResult(null,url);
+    document.getElementById("f-co").value=hostCompany(u);
+  }
+}
+document.getElementById("f-fetch").addEventListener("click",quickFetch);
+document.getElementById("f-quickurl").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();quickFetch();}});
+document.getElementById("f-manual").addEventListener("click",()=>{
+  const raw=document.getElementById("f-quickurl").value.trim();
+  if(raw)document.getElementById("f-url").value=/^https?:\/\//i.test(raw)?raw:"https://"+raw;
+  modalBox.classList.remove("quick");
+  document.getElementById("f-title").focus();
+});
 
 function saveModal(){
   const t=document.getElementById("f-title").value.trim();
@@ -1204,7 +1361,8 @@ function saveModal(){
     tier:parseInt(document.getElementById("f-tier").value,10),
     m:Math.max(0,Math.min(100,parseInt(document.getElementById("f-match").value,10)||0)),
     remote:document.getElementById("f-remote").checked,
-    note:document.getElementById("f-note").value.trim()
+    note:document.getElementById("f-note").value.trim(),
+    ctags:[...new Set(document.getElementById("f-ctags").value.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean))]
   };
   if(editingId){
     const custom=STORE.custom.find(c=>c.id===editingId);
@@ -1212,7 +1370,7 @@ function saveModal(){
     else STORE.edits[editingId]=Object.assign(STORE.edits[editingId]||{},fields);
   }else{
     const maxR=allJobs().reduce((mx,j)=>Math.max(mx,j.r),0);
-    STORE.custom.push(Object.assign({id:"c"+Date.now(),r:maxR+1,src:"Added manually",added:new Date().toISOString().slice(0,10)},fields));
+    STORE.custom.push(Object.assign({id:"c"+Date.now(),r:maxR+1,src:addSrc,added:new Date().toISOString().slice(0,10)},fields));
   }
   saveStore();
   closeModal();
@@ -1678,7 +1836,7 @@ switchTab("tracker");
 
 document.querySelector(".tab-bar").addEventListener("click",e=>{
   if(e.target.id==="clear-filters"){
-    FILTERS.tier.clear();FILTERS.type.clear();FILTERS.focus.clear();FILTERS.loc.clear();
+    FILTERS.tier.clear();FILTERS.type.clear();FILTERS.focus.clear();FILTERS.loc.clear();FILTERS.ctag.clear();
     FILTERS.fresh="all";FILTERS.live="all";FILTERS.company="";
     document.getElementById("company-filter").value="";
     document.querySelectorAll(".chips .fb").forEach(c=>c.classList.toggle("active",c.dataset.val==="all"));
