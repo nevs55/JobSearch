@@ -40,5 +40,5 @@ jobs:
             exit 0
           fi
           mkdir -p /tmp/site
-          cp index.html demo.html link-status.json profile.md job-tracker*.html README.md /tmp/site/
+          cp index.html demo.html logo.png link-status.json profile.md job-tracker*.html README.md /tmp/site/
           npx --yes wrangler@latest pages deploy /tmp/site --project-name=jobsearch --branch=main --commit-dirty=true
