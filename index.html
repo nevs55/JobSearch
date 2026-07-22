@@ -1322,6 +1322,33 @@ async function fetchJobFromUrl(url){
   return null;
 }
 
+// Last-ditch info extraction: most job URLs carry the title as a slug
+// (…/senior-solutions-engineer-boston-4521). Pull the longest wordy path
+// segment, strip ids, and title-case it.
+function titleFromSlug(url){
+  try{
+    const segs=new URL(url).pathname.split("/").filter(Boolean).map(decodeURIComponent);
+    let best="";
+    for(const seg of segs){
+      const s=seg.replace(/\.(html?|aspx|php)$/i,"")
+        .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/ig,"")
+        .replace(/\b\d{3,}\b/g,"")
+        .replace(/[-_+]+/g," ").replace(/\s+/g," ").trim();
+      if(!/^[a-z0-9 ,&()/']+$/i.test(s))continue;
+      if(/^(job|jobs|career|careers|position|positions|opening|openings|search|apply|view|detail|job detail|current openings|en|us|en us)$/i.test(s))continue;
+      if(s.split(" ").filter(w=>/[a-z]{2,}/i.test(w)).length<2)continue;
+      if(s.length>best.length)best=s;
+    }
+    return best?best.replace(/\b\w/g,c=>c.toUpperCase()).replace(/\b(And|Of|The|For|To|In|At|A|An)\b/g,w=>w.toLowerCase()):"";
+  }catch(e){return "";}
+}
+// "Senior SE at Rubrik" slugs (LinkedIn-style) → split into title + company.
+function slugGuess(url){
+  const t=titleFromSlug(url);
+  const m=t.match(/^(.*\S)\s+at\s+(\S.*)$/i);
+  return m?{t:m[1],co:m[2].replace(/\b\w/g,c=>c.toUpperCase())}:{t,co:""};
+}
+
 // Guess the card tags from the fetched title + location, same taxonomy as the rest of the list.
 function guessMeta(title,loc){
   const s=(title+" "+loc).toLowerCase(),l=loc.toLowerCase();
@@ -1352,28 +1379,52 @@ function applyQuickResult(res,url){
   document.getElementById("f-title").focus();
 }
 
+// Fill the form from a link: ATS API first, URL-slug text second.
+// Returns "api" | "slug" | "none".
+async function fillFromLink(url){
+  const res=await fetchJobFromUrl(url);
+  if(res){applyQuickResult(res,url);return "api";}
+  const u=new URL(url);
+  const sg=slugGuess(url);
+  applyQuickResult(null,url);
+  if(sg.t){
+    document.getElementById("f-title").value=sg.t;
+    const g=guessMeta(sg.t,"");
+    document.getElementById("f-bcdr").checked=g.bcdr;
+    document.getElementById("f-hci").checked=g.hci;
+    document.getElementById("f-storage").checked=g.storage;
+    if(/boston|new england|hartford/i.test(sg.t))document.getElementById("f-ne").checked=true;
+    addSrc="Added via job link";
+  }
+  const co=sg.co||(isAggregator(url)?"":hostCompany(u));
+  if(co)document.getElementById("f-co").value=co;
+  return sg.t?"slug":"none";
+}
+
 async function quickFetch(){
   const raw=document.getElementById("f-quickurl").value.trim();
   const msg=document.getElementById("f-fetch-msg");
   if(!raw){msg.textContent="Paste a job posting URL first.";return;}
   let u;try{u=new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw);}catch(e){msg.textContent="That doesn't look like a URL.";return;}
-  const url=u.href;
-  if(isAggregator(url)){
-    msg.textContent="⚠ That's an aggregator link (LinkedIn / Indeed / …) — can't read it directly. Fill in the details, or paste the employer's own posting instead.";
-    applyQuickResult(null,url);
-    return;
-  }
+  const url=u.href,agg=isAggregator(url);
   msg.textContent="Fetching…";
-  const res=await fetchJobFromUrl(url);
-  if(res){msg.textContent="";applyQuickResult(res,url);}
-  else{
-    msg.textContent="Couldn't auto-read that site — company guessed from the link, add the title yourself.";
-    applyQuickResult(null,url);
-    document.getElementById("f-co").value=hostCompany(u);
-  }
+  const how=await fillFromLink(url);
+  msg.textContent=how==="api"?""
+    :how==="slug"?(agg?"⚠ Aggregator link — details read from the link text; double-check them, and swap in the employer's own posting if you can."
+                      :"Read what I could from the link text — double-check before saving.")
+    :(agg?"⚠ Aggregator link (LinkedIn / Indeed / …) — can't read it. Fill in the details, or paste the employer's own posting instead."
+         :"Couldn't auto-read that site — company guessed from the link, add the title yourself.");
 }
 document.getElementById("f-fetch").addEventListener("click",quickFetch);
 document.getElementById("f-quickurl").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();quickFetch();}});
+// pasting a link fetches immediately — no need to click Fetch
+document.getElementById("f-quickurl").addEventListener("paste",()=>setTimeout(quickFetch,80));
+// pasting into the plain URL field (manual add) auto-fills too, but only empty fields
+document.getElementById("f-url").addEventListener("paste",()=>setTimeout(async()=>{
+  if(editingId||document.getElementById("f-title").value.trim())return;
+  const raw=document.getElementById("f-url").value.trim();
+  try{await fillFromLink(new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw).href);}catch(e){}
+},80));
 document.getElementById("f-manual").addEventListener("click",()=>{
   const raw=document.getElementById("f-quickurl").value.trim();
   if(raw)document.getElementById("f-url").value=/^https?:\/\//i.test(raw)?raw:"https://"+raw;
