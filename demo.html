@@ -108,6 +108,9 @@
   .tag.v{color:#a0d9a0;border-color:rgba(160,217,160,.2);}
   .tag.ct{color:#c9a6ff;border-color:rgba(201,166,255,.35);background:rgba(201,166,255,.07);}
   .tag.url{color:var(--accent);border-color:rgba(0,212,170,.35);background:rgba(0,212,170,.06);font-weight:500;}
+  .tag.li{color:#70b5f9;border-color:rgba(112,181,249,.35);background:rgba(112,181,249,.06);font-weight:500;}
+  .tag.applied-on{color:#5b9cf6;border-color:rgba(91,156,246,.4);}
+  .tag.followup{background:rgba(245,166,35,.16);color:#f5a623;border-color:rgba(245,166,35,.5);font-weight:500;}
   #modal-overlay .modal.quick .frow,#modal-overlay .modal.quick .modal-actions{display:none;}
   #modal-overlay .modal.quick #quick-row{display:flex;}
   #modal-overlay .modal:not(.quick) #quick-row{display:none;}
@@ -824,8 +827,8 @@ const FREE_SOURCES=[
 const LS_KEY="jobTrackerDemo_v1";
 J.forEach(j=>j.id="b"+j.r);
 function loadStore(){
-  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
-  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[]};}
+  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[],appliedOn:{}},JSON.parse(localStorage.getItem(LS_KEY))||{});}
+  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[],appliedOn:{}};}
 }
 let STORE=loadStore();
 function saveStore(){
@@ -851,6 +854,15 @@ function tl(t){
   if(t===1)return{cls:"b1",txt:"🔥 Strong"};
   if(t===2)return{cls:"b2",txt:"✦ Good"};
   return{cls:"b3",txt:"◈ Stretch"};
+}
+
+function liCompanyUrl(co){return "https://www.linkedin.com/search/results/companies/?keywords="+encodeURIComponent(co);}
+function liPeopleUrl(co){return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent(co+" recruiter");}
+// A job needs a follow-up nudge when the application is a week old and the
+// status hasn't moved past "applied".
+function needsFollowUp(id){
+  const d=STORE.appliedOn[id];
+  return !!d&&STORE.status[id]==="applied"&&(Date.now()-new Date(d+"T00:00:00").getTime())>=7*86400e3;
 }
 
 // Salary: explicit sal field wins; otherwise pull the first $-range out of
@@ -883,6 +895,9 @@ function renderJobs(data,containerId){
     const archTag=isArch(j.id)?`<span class="tag link-dead">${(STORE.autoArch||[]).includes(j.id)?"🗄 AUTO-ARCHIVED · DEAD LINK":"🗄 ARCHIVED BY YOU"}</span>`:"";
     const inRev=STORE.review.includes(j.id);
     const revTag=inRev?`<span class="tag b">🔍 REVIEW</span>`:"";
+    const liTag=`<a class="tag li" href="${esc(liCompanyUrl(j.co))}" target="_blank" title="Open ${esc(j.co)} on LinkedIn">in ${esc(j.co)}</a>`;
+    const appTag=STORE.appliedOn[j.id]?`<span class="tag applied-on">✅ applied ${esc(STORE.appliedOn[j.id])}</span>`:"";
+    const fuTag=needsFollowUp(j.id)?`<span class="tag followup" title="Applied a week+ ago with no movement — time to follow up${j.contact?" with "+esc(j.contact):""}">⏰ FOLLOW UP</span>`:"";
     const verify=(agg||stat==="dead")?`<a class="al verify" href="${esc(careersUrl(j.co))}" target="_blank">${stat==="dead"?"Find current openings →":"Verify on company site →"}</a>`:"";
     const contact=(j.contact||j.cemail)?`<span class="contact-line">👤 ${esc(j.contact||"Contact")}${j.cemail?` · <a href="mailto:${esc(j.cemail)}">${esc(j.cemail)}</a>`:""}</span>`:"";
     return `<div class="jc" data-id="${j.id}" style="animation-delay:${i*.02}s">
@@ -898,7 +913,7 @@ function renderJobs(data,containerId){
       <div class="jfoot">
         <span class="jnote">${esc(j.note)}${contact}<br><span class="src">${esc(j.src)}</span></span>
         <div class="jact">
-          <div class="jtags">${archTag}${revTag}${newTag}${j.url?`<a class="tag url" href="${esc(j.url)}" target="_blank" title="Open the job posting in a new tab">↗ job link</a>`:""}${typ}${ne}${rem}${ext}${ct}${srcTag}${statTag}</div>
+          <div class="jtags">${archTag}${fuTag}${appTag}${revTag}${newTag}${j.url?`<a class="tag url" href="${esc(j.url)}" target="_blank" title="Open the job posting in a new tab">↗ job link</a>`:""}${liTag}${typ}${ne}${rem}${ext}${ct}${srcTag}${statTag}</div>
           <div class="card-controls">
             <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
             <select class="status-sel act-sel" data-id="${j.id}" title="Actions">
@@ -1257,7 +1272,10 @@ function openDetail(id){
       <span class="d-label">Location</span><span class="d-val">${j.remote?"Remote-friendly":"On-site"}${j.tags.includes("ne")?" · NE / Boston":""}</span>
       <span class="d-label">Link check</span><span class="d-val">${linkTxt}</span>
       ${j.added?`<span class="d-label">Added</span><span class="d-val">${esc(j.added)}</span>`:""}
+      ${STORE.appliedOn[j.id]?`<span class="d-label">Applied</span><span class="d-val">${esc(STORE.appliedOn[j.id])}${needsFollowUp(j.id)?` · <span class="tag followup">⏰ FOLLOW UP</span>`:""}</span>`:""}
       ${(j.contact||j.cemail)?`<span class="d-label">Contact</span><span class="d-val">${esc(j.contact||"")}${j.cemail?` · <a href="mailto:${esc(j.cemail)}" style="color:#7ecde8">${esc(j.cemail)}</a>`:""}</span>`:""}
+      ${STORE.status[j.id]==="applied"?`<span class="d-label">Follow up</span><span class="d-val">${(j.contact||j.cemail)?`Reach out to ${esc(j.contact||j.cemail)} if no reply a week after applying.`:`No contact saved for this job yet.`} <a href="${esc(liPeopleUrl(j.co))}" target="_blank" style="color:#70b5f9">Find ${esc(j.co)} recruiters on LinkedIn →</a></span>`:""}
+      <span class="d-label">LinkedIn</span><span class="d-val"><a href="${esc(liCompanyUrl(j.co))}" target="_blank" style="color:#70b5f9">${esc(j.co)} on LinkedIn →</a></span>
       ${j.src?`<span class="d-label">Source</span><span class="d-val" style="color:var(--muted);font-size:.74rem">${esc(j.src)}</span>`:""}
     </div>
     <div class="modal-actions">
@@ -1709,6 +1727,9 @@ document.addEventListener("change",e=>{
   const id=sel.dataset.id;
   if(sel.value)STORE.status[id]=sel.value;
   else delete STORE.status[id];
+  // remember the day the application went in; clearing the status forgets it
+  if(sel.value==="applied"&&!STORE.appliedOn[id])STORE.appliedOn[id]=new Date().toISOString().slice(0,10);
+  if(!sel.value)delete STORE.appliedOn[id];
   saveStore();
   sel.className="status-sel st-"+(sel.value||"none");
   // Re-render unless the change came from inside the detail popup (the list
@@ -1779,7 +1800,7 @@ window.addEventListener("pagehide",()=>{
 // edits: the side with the newer overall timestamp wins conflicts; lists
 // (custom jobs, archived, deleted, sources) are unioned.
 function mergeStores(a,b){
-  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[]};
+  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[],appliedOn:{}};
   const A=Object.assign({},D,a),B=Object.assign({},D,b);
   const newer=(A._ts||0)>=(B._ts||0)?A:B;
   const older=newer===A?B:A;
@@ -1798,6 +1819,7 @@ function mergeStores(a,b){
     coRenames:Object.assign({},older.coRenames,newer.coRenames),
     coNotes:Object.assign({},older.coNotes,newer.coNotes),
     review:[...new Set([...older.review,...newer.review])],
+    appliedOn:Object.assign({},older.appliedOn,newer.appliedOn),
     _ts:Date.now()
   };
 }
