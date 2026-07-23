@@ -95,6 +95,7 @@
   .b2{background:rgba(91,156,246,.1);color:var(--t2);border:1px solid rgba(91,156,246,.24);}
   .b3{background:rgba(160,132,232,.1);color:var(--t3);border:1px solid rgba(160,132,232,.24);}
   .mrow{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);}
+  .sal{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:#f5c842;white-space:nowrap;}
   .mbar{width:62px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
   .mfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
   .jfoot{margin-top:auto;padding-top:8px;border-top:1px solid var(--border);display:flex;flex-direction:column;align-items:stretch;gap:8px;}
@@ -539,6 +540,7 @@
         </select>
       </div>
       <div class="fcol" style="max-width:110px"><span class="flab">Match %</span><input class="fin" id="f-match" type="number" min="0" max="100" value="80"></div>
+      <div class="fcol" style="max-width:150px"><span class="flab">Salary</span><input class="fin" id="f-sal" type="text" placeholder="$150K–$200K"></div>
     </div>
     <div class="frow">
       <div class="fcol"><span class="flab">Contact Name</span><input class="fin" id="f-contact" type="text" placeholder="e.g. Jane Smith — recruiter"></div>
@@ -850,6 +852,14 @@ function tl(t){
   return{cls:"b3",txt:"◈ Stretch"};
 }
 
+// Salary: explicit sal field wins; otherwise pull the first $-range out of
+// the note text ("$165K–$248K", "OTE $190,400–$238,000", "base $112K–$182K").
+function salaryOf(j){
+  if(j.sal)return j.sal;
+  const m=(j.note||"").match(/\$\d{2,3}(?:,\d{3})?K?\s?[–\-—]\s?\$?\d{2,3}(?:,\d{3})?K?/);
+  return m?m[0].replace(/\s/g,""):"";
+}
+
 function renderJobs(data,containerId){
   const el=document.getElementById(containerId)||document.querySelector(".job-list");
   if(!data.length){el.innerHTML='<div class="empty">No roles match.</div>';return;}
@@ -880,6 +890,7 @@ function renderJobs(data,containerId){
       <div class="jright">
         <span class="badge ${t.cls}" data-fg="tier" data-fv="${j.tier}" title="Filter: ${t.txt}">${t.txt}</span>
         <div class="mrow"><div class="mbar"><div class="mfill" style="width:${j.m}%"></div></div><span>${j.m}%</span></div>
+        ${salaryOf(j)?`<span class="sal" title="Salary from the posting">💰 ${esc(salaryOf(j))}</span>`:""}
       </div>
       <div class="jfoot">
         <span class="jnote">${esc(j.note)}${contact}<br><span class="src">${esc(j.src)}</span></span>
@@ -1228,6 +1239,7 @@ function openDetail(id){
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <span class="badge ${t.cls}">${t.txt}</span>
       <div class="mrow"><div class="mbar"><div class="mfill" style="width:${j.m}%"></div></div><span>${j.m}% match</span></div>
+      ${salaryOf(j)?`<span class="sal">💰 ${esc(salaryOf(j))}</span>`:""}
       <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
     </div>
     <div class="d-note">${esc(j.note)}</div>
@@ -1274,6 +1286,7 @@ function openModal(job){
   document.getElementById("f-storage").checked=job?job.tags.includes("storage"):false;
   document.getElementById("f-note").value=job?job.note:"";
   document.getElementById("f-ctags").value=job&&job.ctags?job.ctags.join(", "):"";
+  document.getElementById("f-sal").value=job?(job.sal||""):"";
   if(job)modalBox.classList.remove("quick");
   else{
     modalBox.classList.add("quick");
@@ -1472,7 +1485,8 @@ function saveModal(){
     m:Math.max(0,Math.min(100,parseInt(document.getElementById("f-match").value,10)||0)),
     remote:document.getElementById("f-remote").checked,
     note:document.getElementById("f-note").value.trim(),
-    ctags:[...new Set(document.getElementById("f-ctags").value.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean))]
+    ctags:[...new Set(document.getElementById("f-ctags").value.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean))],
+    sal:document.getElementById("f-sal").value.trim()
   };
   if(editingId){
     const custom=STORE.custom.find(c=>c.id===editingId);
