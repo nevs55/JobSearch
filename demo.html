@@ -107,6 +107,7 @@
   .tag.b{color:#7ecde8;border-color:rgba(126,205,232,.2);}
   .tag.v{color:#a0d9a0;border-color:rgba(160,217,160,.2);}
   .tag.ct{color:#c9a6ff;border-color:rgba(201,166,255,.35);background:rgba(201,166,255,.07);}
+  .tag.url{color:var(--accent);border-color:rgba(0,212,170,.35);background:rgba(0,212,170,.06);font-weight:500;}
   #modal-overlay .modal.quick .frow,#modal-overlay .modal.quick .modal-actions{display:none;}
   #modal-overlay .modal.quick #quick-row{display:flex;}
   #modal-overlay .modal:not(.quick) #quick-row{display:none;}
@@ -711,8 +712,6 @@ const J=[
 // added 2026-07-23 (emerging-company sweep)
 {r:120,t:"Technical Account Manager (Mid-Atlantic)",co:"Wiz",tier:3,tags:["vendor"],remote:true,m:60,note:"Confirmed live on Wiz's own Greenhouse board (4688850006), Remote-USA with Mid-Atlantic regional focus, $100,000–$125,000 base + bonus/equity. Post-sales TAM for the Wiz cloud security platform (AWS/Azure/GCP) — security-platform specialization is a stretch from BCDR/HCI/storage core, but the trusted-advisor TAM motion matches your background; Mid-Atlantic territory is NE-adjacent.",url:"https://www.wiz.io/careers/job/4688850006/technical-account-manager-mid-atlantic",src:"Verified 2026-07-23: Greenhouse API boards-api.greenhouse.io/wizinc/4688850006 (200, live)",contact:"Wintana Melake — Talent Partner, GTM (Wiz)",added:"2026-07-23"},
 {r:121,t:"Senior Domain Consultant",co:"Palo Alto Networks",tier:3,tags:["vendor","ne"],remote:false,m:63,note:"Confirmed live on Palo Alto Networks' own careers site (JR-015016), Boston, MA. Pre-sales technical consultant for Prisma Cloud (CSPM/CWP/KSPM) — cloud-security specialization is a stretch from your BCDR/HCI/storage core, but the Boston location is a direct match. Palo Alto Networks completed its $25B acquisition of CyberArk (Newton, MA-HQ'd identity-security vendor) in Feb 2026, folding CyberArk's presales org into PANW — new employer for the tracker.",url:"https://jobs.paloaltonetworks.com/en/job/boston/senior-domain-consultant/47263/96174868480",src:"Verified 2026-07-23: jobs.paloaltonetworks.com direct fetch (live, JR-015016)",added:"2026-07-23"},
-{r:122,t:"Solutions Architect",co:"AvePoint",tier:2,tags:["vendor","bcdr"],remote:false,m:80,note:"Confirmed live on AvePoint's own Greenhouse board (7588856), New York, NY, $190,000–$220,000 base. Presales SA designing/demoing AvePoint's SaaS data security, governance, and resilience (M365 backup/DR) platform — squarely BCDR/data-protection adjacent, strong comp; NYC office-based rather than remote, but within striking distance of Boston/NE. New vendor for the tracker.",url:"https://www.avepoint.com/careers/job-detail?gh_jid=7588856",src:"Verified 2026-07-23: Greenhouse API boards-api.greenhouse.io/avepoint/7588856 (200, live)",added:"2026-07-23"},
-{r:123,t:"Solutions Architect, Federal",co:"CoreWeave",tier:3,tags:["vendor"],remote:false,m:56,note:"Confirmed live on CoreWeave's own Greenhouse board (4693446006), Washington, D.C. Named technical partner (presales SA) for CoreWeave Federal's AI/GPU-cloud platform serving U.S. government, IC, and Defense Industrial Base customers — likely requires federal clearance, and the AI/GPU infrastructure stack is a skills stretch from BCDR/storage, but your enterprise-datacenter depth plus hands-on Ollama/homelab AI experience is the differentiator vs. AI-native candidates.",url:"https://boards.greenhouse.io/coreweave/jobs/4693446006",src:"Verified 2026-07-23: Greenhouse boards.greenhouse.io/coreweave/4693446006 (200, live)",added:"2026-07-23"},
 ];
 
 // ── COMPANY DATA ─────────────────────────────────────────────────────────
@@ -762,8 +761,6 @@ const COMPANIES=[
   {name:"Deepgram",type:"Startup — Voice AI Platform",roles:"Solutions Architect / Pre-Sales Solutions Engineer (Remote, EST/PST)",count:1,url:"https://jobs.ashbyhq.com/deepgram"},
   {name:"Wiz",type:"Vendor — Cloud Security",roles:"Technical Account Manager (Mid-Atlantic, Remote US)",count:1,url:"https://www.wiz.io/careers"},
   {name:"Palo Alto Networks",type:"Vendor — Security (post-CyberArk acquisition)",roles:"Senior Domain Consultant, Cloud Security (Boston, MA)",count:1,url:"https://jobs.paloaltonetworks.com/en"},
-  {name:"AvePoint",type:"Vendor — SaaS Data Security/Governance/Resilience",roles:"Solutions Architect (New York, NY)",count:1,url:"https://www.avepoint.com/careers"},
-  {name:"CoreWeave",type:"Vendor — AI/GPU Cloud Infrastructure",roles:"Solutions Architect, Federal (Washington, D.C.)",count:1,url:"https://coreweave.com/careers"},
   {name:"Rapid7",type:"Vendor — Security",roles:"NO pre-sales SE/SA roles open (verified on their own live careers.rapid7.com job search Jul 23 2026 — only finance/marketing/leadership roles listed; a previously search-indexed Boston Commercial Northeast Sales Engineer posting has since closed). Watch careers.rapid7.com for a repost.",count:0,url:"https://careers.rapid7.com/jobs"},
 ];
 
@@ -907,7 +904,7 @@ function renderJobs(data,containerId){
       <div class="jfoot">
         <span class="jnote">${esc(j.note)}${contact}<br><span class="src">${esc(j.src)}</span></span>
         <div class="jact">
-          <div class="jtags">${archTag}${revTag}${newTag}${typ}${ne}${rem}${ext}${ct}${srcTag}${statTag}</div>
+          <div class="jtags">${archTag}${revTag}${newTag}${j.url?`<a class="tag url" href="${esc(j.url)}" target="_blank" title="Open the job posting in a new tab">↗ job link</a>`:""}${typ}${ne}${rem}${ext}${ct}${srcTag}${statTag}</div>
           <div class="card-controls">
             <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
             <div class="menu-wrap">
