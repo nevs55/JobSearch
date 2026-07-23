@@ -819,8 +819,8 @@ const FREE_SOURCES=[
 const LS_KEY="jobTrackerData_v1";
 J.forEach(j=>j.id="b"+j.r);
 function loadStore(){
-  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
-  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]};}
+  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{}},JSON.parse(localStorage.getItem(LS_KEY))||{});}
+  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{}};}
 }
 let STORE=loadStore();
 function saveStore(){
@@ -831,7 +831,9 @@ function saveStore(){
 
 function allJobs(){
   const base=J.filter(j=>!STORE.deleted.includes(j.id)).map(j=>Object.assign({},j,STORE.edits[j.id]||{}));
-  return base.concat(STORE.custom.filter(j=>!STORE.deleted.includes(j.id)));
+  const rn=STORE.coRenames||{};
+  const fix=j=>rn[j.co]?Object.assign({},j,{co:rn[j.co]}):j;
+  return base.map(fix).concat(STORE.custom.filter(j=>!STORE.deleted.includes(j.id)).map(fix));
 }
 
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -999,7 +1001,7 @@ function matchesSearch(j){
 
 function companyMatches(c){
   if(!query)return true;
-  const hay=`${c.name} ${c.type||""} ${c.roles||""}`.toLowerCase();
+  const hay=`${c.name} ${c.type||""} ${c.roles||""} ${c.note||""}`.toLowerCase();
   return query.split(/\s+/).every(w=>hay.includes(w));
 }
 
@@ -1018,29 +1020,36 @@ function normCo(s){
 function coTracked(name){
   const n=normCo(name);
   if(!n)return true;
-  const known=[...COMPANIES.map(c=>c.name),...(STORE.companies||[]).map(c=>c.name),...allJobs().map(j=>j.co)];
+  const rn=STORE.coRenames||{};
+  const known=[...COMPANIES.map(c=>c.name),...COMPANIES.map(c=>rn[c.name]||c.name),...(STORE.companies||[]).map(c=>c.name),...allJobs().map(j=>j.co)];
   return known.some(k=>{
     const kn=normCo(k);
     return kn===n||(n.length>=4&&kn.includes(n))||(kn.length>=4&&n.includes(kn));
   });
 }
 
+function coNoteHtml(note){
+  return note?`<div class="cc-roles" style="color:#c9a6ff">📝 ${esc(note)}</div>`:"";
+}
 function renderCompanies(){
-  const mine=(STORE.companies||[]).filter(companyMatches).map((c,i)=>`
+  const rn=STORE.coRenames||{},notes=STORE.coNotes||{};
+  const mine=(STORE.companies||[]).map((c,i)=>({c,i})).filter(x=>companyMatches(x.c)).map(({c,i})=>`
     <div class="company-card">
       <div><span class="cc-count">watch-list</span>
-      <div class="cc-name">${esc(c.name)}</div>
+      <div class="cc-name">${esc(c.name)} <button class="icon-btn" data-act="renco-my" data-i="${i}" title="Edit name">✎</button> <button class="icon-btn" data-act="conote" data-key="my:${i}" title="Add / edit note">📝</button></div>
       <div class="cc-type">Added by you · ${esc(c.added||"")}</div></div>
+      ${coNoteHtml(c.note)}
       <div class="src-card-foot">
         <a class="cc-link" href="${esc(c.url||careersUrl(c.name))}" target="_blank">View openings →</a>
         <button class="icon-btn danger" data-act="delco" data-i="${i}" title="Remove">✕</button>
       </div>
     </div>`).join("");
-  const base=COMPANIES.filter(companyMatches).map(c=>`
+  const base=COMPANIES.map(c=>({c,disp:rn[c.name]||c.name,note:notes[c.name]||""})).filter(x=>companyMatches(Object.assign({},x.c,{name:x.disp,note:x.note}))).map(({c,disp,note})=>`
     <div class="company-card">
       <div><span class="cc-count">${c.count} role${c.count>1?"s":""}</span>
-      <div class="cc-name">${c.name}</div>
+      <div class="cc-name">${esc(disp)} <button class="icon-btn" data-act="renco" data-orig="${esc(c.name)}" title="Edit name">✎</button> <button class="icon-btn" data-act="conote" data-key="base:${esc(c.name)}" title="Add / edit note">📝</button></div>
       <div class="cc-type">${c.type}</div></div>
+      ${coNoteHtml(note)}
       <div class="cc-roles">${c.roles}</div>
       <a class="cc-link" href="${c.url}" target="_blank">View openings →</a>
     </div>`).join("");
@@ -1103,12 +1112,13 @@ function populateCtagChips(){
   wrap.innerHTML=tags.map(t=>`<button class="fb${FILTERS.ctag.has(t)?" active":""}" data-val="${esc(t)}">🏷 ${esc(t)}</button>`).join("");
 }
 
-let companyOptCount=0;
+let companyOptSig="";
 function populateCompanyFilter(){
   const sel=document.getElementById("company-filter");
   const cos=[...new Set(allJobs().map(j=>j.co))].sort((a,b)=>a.localeCompare(b));
-  if(cos.length===companyOptCount)return;
-  companyOptCount=cos.length;
+  const sig=cos.join("|");
+  if(sig===companyOptSig)return;
+  companyOptSig=sig;
   const cur=sel.value;
   sel.innerHTML='<option value="">All companies</option>'+cos.map(c=>`<option value="${esc(c)}"${c===cur?" selected":""}>${esc(c)}</option>`).join("");
 }
@@ -1550,6 +1560,56 @@ document.addEventListener("click",e=>{
     renderCompanies();
     return;
   }
+  if(btn.dataset.act==="renco"||btn.dataset.act==="renco-my"){
+    const my=btn.dataset.act==="renco-my";
+    const rn=STORE.coRenames||(STORE.coRenames={});
+    const entry=my?STORE.companies[parseInt(btn.dataset.i,10)]:null;
+    const orig=my?null:btn.dataset.orig;
+    const cur=my?entry.name:(rn[orig]||orig);
+    const nn=prompt("Company name:",cur);
+    if(nn===null)return;
+    const v=nn.trim();
+    if(!v||v===cur)return;
+    if(my)entry.name=v;
+    else if(v===orig)delete rn[orig];
+    else rn[orig]=v;
+    if(FILTERS.company===cur)FILTERS.company=v;
+    saveStore();
+    switchTab(currentTab,true);
+    return;
+  }
+  if(btn.dataset.act==="conote"){
+    const card=btn.closest(".company-card");
+    if(card.querySelector(".co-note-ed"))return;
+    const key=btn.dataset.key;
+    const cur=key.startsWith("my:")?(STORE.companies[parseInt(key.slice(3),10)].note||""):((STORE.coNotes||{})[key.slice(5)]||"");
+    card.insertAdjacentHTML("beforeend",`<div class="co-note-ed" style="margin-top:8px">
+      <textarea class="fin" style="width:100%;min-height:64px;box-sizing:border-box" placeholder="Notes about this company — contacts, culture, why interested…">${esc(cur)}</textarea>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="add-btn" data-act="conote-save" data-key="${esc(key)}">Save note</button>
+        <button class="btn-sec" data-act="conote-cancel">Cancel</button>
+      </div></div>`);
+    card.querySelector(".co-note-ed textarea").focus();
+    return;
+  }
+  if(btn.dataset.act==="conote-save"){
+    const key=btn.dataset.key;
+    const text=btn.closest(".co-note-ed").querySelector("textarea").value.trim();
+    if(key.startsWith("my:")){
+      STORE.companies[parseInt(key.slice(3),10)].note=text;
+    }else{
+      if(!STORE.coNotes)STORE.coNotes={};
+      if(text)STORE.coNotes[key.slice(5)]=text;
+      else delete STORE.coNotes[key.slice(5)];
+    }
+    saveStore();
+    renderCompanies();
+    return;
+  }
+  if(btn.dataset.act==="conote-cancel"){
+    btn.closest(".co-note-ed").remove();
+    return;
+  }
   if(btn.dataset.act==="exportdata"){
     const a=document.createElement("a");
     a.href=URL.createObjectURL(new Blob([JSON.stringify(STORE,null,2)],{type:"application/json"}));
@@ -1677,7 +1737,7 @@ window.addEventListener("pagehide",()=>{
 // edits: the side with the newer overall timestamp wins conflicts; lists
 // (custom jobs, archived, deleted, sources) are unioned.
 function mergeStores(a,b){
-  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[]};
+  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{}};
   const A=Object.assign({},D,a),B=Object.assign({},D,b);
   const newer=(A._ts||0)>=(B._ts||0)?A:B;
   const older=newer===A?B:A;
@@ -1693,6 +1753,8 @@ function mergeStores(a,b){
     status:Object.assign({},older.status,newer.status),
     sources:Object.values(srcKey),
     companies:Object.values(coKey),
+    coRenames:Object.assign({},older.coRenames,newer.coRenames),
+    coNotes:Object.assign({},older.coNotes,newer.coNotes),
     _ts:Date.now()
   };
 }
