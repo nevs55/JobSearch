@@ -137,6 +137,14 @@
   .status-sel.st-offer{color:#00d4aa;border-color:rgba(0,212,170,.4);}
   .status-sel.st-rejected{color:#e05a5a;border-color:rgba(224,90,90,.4);}
   .icon-btn{font-size:.78rem;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;padding:2px 7px;transition:all .12s;line-height:1.4;}
+  .menu-wrap{position:relative;display:inline-block;}
+  .jc{position:relative;}
+  .jc:has(.menu-wrap.open){z-index:40;}
+  .card-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;z-index:30;min-width:180px;box-shadow:0 10px 28px rgba(0,0,0,.5);}
+  .menu-wrap.open .card-menu{display:flex;flex-direction:column;gap:2px;}
+  .cm-item{font-family:'JetBrains Mono',monospace;font-size:.66rem;text-align:left;background:transparent;border:none;color:var(--text);padding:7px 10px;border-radius:6px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+  .cm-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .cm-item.danger:hover{color:#e05a5a;background:rgba(224,90,90,.08);}
   .icon-btn:hover{border-color:var(--accent);color:var(--accent);}
   .icon-btn.danger:hover{border-color:#e05a5a;color:#e05a5a;}
 
@@ -236,6 +244,7 @@
       <div class="sg-h"><span class="chev">▾</span>Jobs</div>
       <div class="sg-b">
         <button class="tab active" data-tab="tracker">📋 All Jobs <span class="cnt" id="tc-all">—</span></button>
+        <button class="tab" data-tab="review">🔍 Review <span class="cnt" id="tc-review">—</span></button>
         <button class="tab" data-tab="pipeline">📌 My Pipeline <span class="cnt" id="tc-pipe">—</span></button>
         <button class="tab" data-tab="applied">✅ Applied <span class="cnt" id="tc-applied">—</span></button>
         <button class="tab" data-tab="archive">🗄 Archive <span class="cnt" id="tc-arch">—</span></button>
@@ -332,6 +341,7 @@
   </div>
 
   <div class="page" id="page-strong"></div>
+  <div class="page" id="page-review"></div>
   <div class="page" id="page-pipeline"></div>
   <div class="page" id="page-applied"></div>
   <div class="page" id="page-archive"></div>
@@ -823,8 +833,8 @@ const FREE_SOURCES=[
 const LS_KEY="jobTrackerDemo_v1";
 J.forEach(j=>j.id="b"+j.r);
 function loadStore(){
-  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{}},JSON.parse(localStorage.getItem(LS_KEY))||{});}
-  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{}};}
+  try{return Object.assign({custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[]},JSON.parse(localStorage.getItem(LS_KEY))||{});}
+  catch(e){return{custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[]};}
 }
 let STORE=loadStore();
 function saveStore(){
@@ -880,6 +890,8 @@ function renderJobs(data,containerId){
     const statTag=stat==="dead"?`<span class="tag link-dead">✗ link dead ${LINKSTAT.checked}</span>`
       :stat==="live"?`<span class="tag link-live">link ✓ ${LINKSTAT.checked}</span>`:"";
     const archTag=isArch(j.id)?`<span class="tag link-dead">${(STORE.autoArch||[]).includes(j.id)?"🗄 AUTO-ARCHIVED · DEAD LINK":"🗄 ARCHIVED BY YOU"}</span>`:"";
+    const inRev=STORE.review.includes(j.id);
+    const revTag=inRev?`<span class="tag b">🔍 REVIEW</span>`:"";
     const verify=(agg||stat==="dead")?`<a class="al verify" href="${esc(careersUrl(j.co))}" target="_blank">${stat==="dead"?"Find current openings →":"Verify on company site →"}</a>`:"";
     const contact=(j.contact||j.cemail)?`<span class="contact-line">👤 ${esc(j.contact||"Contact")}${j.cemail?` · <a href="mailto:${esc(j.cemail)}">${esc(j.cemail)}</a>`:""}</span>`:"";
     return `<div class="jc" data-id="${j.id}" style="animation-delay:${i*.02}s">
@@ -895,14 +907,20 @@ function renderJobs(data,containerId){
       <div class="jfoot">
         <span class="jnote">${esc(j.note)}${contact}<br><span class="src">${esc(j.src)}</span></span>
         <div class="jact">
-          <div class="jtags">${archTag}${newTag}${typ}${ne}${rem}${ext}${ct}${srcTag}${statTag}</div>
+          <div class="jtags">${archTag}${revTag}${newTag}${typ}${ne}${rem}${ext}${ct}${srcTag}${statTag}</div>
           <div class="card-controls">
             <select class="status-sel st-${st||"none"}" data-id="${j.id}">${opts}</select>
-            <button class="icon-btn" data-act="edit" data-id="${j.id}" title="Edit">✎</button>
-            ${isArch(j.id)
-              ?`<button class="icon-btn" data-act="unarch" data-id="${j.id}" title="Restore to tracker">↩ Restore</button>`
-              :`<button class="icon-btn" data-act="arch" data-id="${j.id}" title="Archive (hide but keep)">🗄</button>`}
-            <button class="icon-btn danger" data-act="del" data-id="${j.id}" title="Delete permanently">✕</button>
+            <div class="menu-wrap">
+              <button class="icon-btn" data-act="menu" title="Actions">⋯</button>
+              <div class="card-menu">
+                <button class="cm-item" data-act="review" data-id="${j.id}">${inRev?"✓ Remove from Review":"🔍 Mark for Review"}</button>
+                <button class="cm-item" data-act="edit" data-id="${j.id}">✎ Edit</button>
+                ${isArch(j.id)
+                  ?`<button class="cm-item" data-act="unarch" data-id="${j.id}">↩ Restore to tracker</button>`
+                  :`<button class="cm-item" data-act="arch" data-id="${j.id}">🗄 Archive</button>`}
+                <button class="cm-item danger" data-act="del" data-id="${j.id}">✕ Delete permanently</button>
+              </div>
+            </div>
           </div>
           ${j.url?`<a class="al" href="${esc(j.url)}" target="_blank">Apply →</a>`:""}
           ${verify}
@@ -1079,8 +1097,9 @@ function updateStats(data){
 function updateCounts(){
   const ALL=allJobs();
   const A=ALL.filter(j=>!isArch(j.id));
-  const B=A.filter(j=>!STORE.status[j.id]);
+  const B=A.filter(j=>!STORE.status[j.id]&&!STORE.review.includes(j.id));
   document.getElementById("tc-all").textContent=B.length;
+  document.getElementById("tc-review").textContent=STORE.review.filter(id=>ALL.some(j=>j.id===id)).length;
   document.getElementById("tc-pipe").textContent=ALL.filter(j=>STORE.status[j.id]).length;
   document.getElementById("tc-applied").textContent=ALL.filter(j=>STORE.status[j.id]==="applied").length;
   document.getElementById("tc-arch").textContent=ALL.filter(j=>isArch(j.id)).length;
@@ -1148,7 +1167,7 @@ function renderPager(pageEl,total,pages){
 }
 
 const FILTER_MAP={
-  tracker:null, pipeline:"pipeline", applied:"applied", archive:"archive",
+  tracker:null, review:"review", pipeline:"pipeline", applied:"applied", archive:"archive",
   companies:null, sources:null, tips:null
 };
 
@@ -1186,10 +1205,11 @@ function switchTab(tabId,keepPage){
   const ACT=ALL.filter(j=>!isArch(j.id));
   // Browsing tabs only show jobs you haven't acted on yet — once a status is
   // set, a job lives in Pipeline/Applied instead.
-  const BROWSE=ACT.filter(j=>!STORE.status[j.id]);
+  const BROWSE=ACT.filter(j=>!STORE.status[j.id]&&!STORE.review.includes(j.id));
   let data;
   if(filter==="archive") data=ALL.filter(j=>isArch(j.id));
   else if(!filter) data=viewMode==="all"?ALL:BROWSE;
+  else if(filter==="review") data=ALL.filter(j=>STORE.review.includes(j.id));
   else if(filter==="pipeline") data=ALL.filter(j=>STORE.status[j.id]);
   else if(filter==="applied") data=ALL.filter(j=>STORE.status[j.id]==="applied");
   data=sortJobs(applyFilters(data.filter(matchesSearch)));
@@ -1509,6 +1529,8 @@ overlay.addEventListener("click",e=>{if(e.target===overlay)closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay.classList.contains("open"))closeModal();});
 
 document.addEventListener("click",e=>{
+  // any click outside the ⋯ toggle closes open card menus
+  if(!e.target.closest('[data-act="menu"]'))document.querySelectorAll(".menu-wrap.open").forEach(m=>m.classList.remove("open"));
   if(e.target.id==="detail-close"){closeDetail();return;}
   const pg=e.target.closest("[data-pg]");
   if(pg&&!pg.disabled){
@@ -1534,6 +1556,21 @@ document.addEventListener("click",e=>{
   if(!btn){
     const card=e.target.closest(".jc");
     if(card&&card.dataset.id&&!e.target.closest("a,button,select"))openDetail(card.dataset.id);
+    return;
+  }
+  if(btn.dataset.act==="menu"){
+    const w=btn.closest(".menu-wrap");
+    const was=w.classList.contains("open");
+    document.querySelectorAll(".menu-wrap.open").forEach(m=>m.classList.remove("open"));
+    if(!was)w.classList.add("open");
+    return;
+  }
+  if(btn.dataset.act==="review"){
+    const id=btn.dataset.id;
+    const i=STORE.review.indexOf(id);
+    if(i>=0)STORE.review.splice(i,1);else STORE.review.push(id);
+    saveStore();
+    switchTab(currentTab,true);
     return;
   }
   if(btn.dataset.act==="addsrc"){
@@ -1756,7 +1793,7 @@ window.addEventListener("pagehide",()=>{
 // edits: the side with the newer overall timestamp wins conflicts; lists
 // (custom jobs, archived, deleted, sources) are unioned.
 function mergeStores(a,b){
-  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{}};
+  const D={custom:[],edits:{},deleted:[],status:{},sources:[],archived:[],autoArch:[],companies:[],coRenames:{},coNotes:{},review:[]};
   const A=Object.assign({},D,a),B=Object.assign({},D,b);
   const newer=(A._ts||0)>=(B._ts||0)?A:B;
   const older=newer===A?B:A;
@@ -1774,6 +1811,7 @@ function mergeStores(a,b){
     companies:Object.values(coKey),
     coRenames:Object.assign({},older.coRenames,newer.coRenames),
     coNotes:Object.assign({},older.coNotes,newer.coNotes),
+    review:[...new Set([...older.review,...newer.review])],
     _ts:Date.now()
   };
 }
