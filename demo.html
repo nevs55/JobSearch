@@ -316,6 +316,7 @@
     <option value="0">All</option>
   </select>
   <button class="add-btn" id="add-job">＋ Add Job</button>
+  <button class="btn-sec" id="sync-now-btn" title="Pull the latest from your other devices and save" style="display:none">⟳ Sync</button>
   <button class="btn-sec" id="sync-btn" title="Sync your data across devices">☁ Sync</button>
   <button class="btn-sec" id="research-btn" title="Run an on-demand AI research sweep for new jobs">🧠 Research</button>
   <button class="btn-sec" id="profile-btn" title="Upload your resume to update the AI research criteria">📄 Profile</button>
@@ -1695,16 +1696,19 @@ function syncMsg(t,err){
   el.style.color=err?"#e05a5a":"var(--accent)";
 }
 function syncLabel(){
+  const nowBtn=document.getElementById("sync-now-btn");
   if(sbUser){
     syncBtn.textContent="☁ "+sbUser.email;
-    syncBtn.title="Cloud sync is on — linked to "+sbUser.email;
+    syncBtn.title="Your sync account — password, sign out";
     syncBtn.style.color="var(--accent)";
     syncBtn.style.borderColor="var(--accent)";
+    nowBtn.style.display="";
   }else{
     syncBtn.textContent="☁ Sync";
     syncBtn.title="Sync your data across devices";
     syncBtn.style.color="";
     syncBtn.style.borderColor="";
+    nowBtn.style.display="none";
   }
 }
 function refreshSyncModal(){
@@ -1761,7 +1765,7 @@ function mergeStores(a,b){
 }
 
 async function pullAndMerge(){
-  if(!sb||!sbUser)return;
+  if(!sb||!sbUser)return false;
   try{
     const {data,error}=await sb.from("tracker_data").select("data").maybeSingle();
     if(error)throw error;
@@ -1772,13 +1776,24 @@ async function pullAndMerge(){
     switchTab(currentTab);
     await pushRemote();
     syncMsg("Synced ✓ "+new Date().toLocaleTimeString());
-  }catch(e){syncMsg("Cloud load failed: "+(e.message||e),true);}
+    return true;
+  }catch(e){syncMsg("Cloud load failed: "+(e.message||e),true);return false;}
 }
 
 syncBtn.addEventListener("click",()=>{
   if(!sb){alert("Cloud sync isn't available in this embedded copy. Open the full site at nevs55.github.io/JobSearch to sync.");return;}
   refreshSyncModal();
   syncOverlay.classList.add("open");
+});
+// one-press sync — no popup, direct pull+push with inline feedback
+const syncNowBtn=document.getElementById("sync-now-btn");
+syncNowBtn.addEventListener("click",async()=>{
+  if(syncNowBtn.disabled)return;
+  syncNowBtn.disabled=true;
+  syncNowBtn.textContent="⟳ Syncing…";
+  const ok=await pullAndMerge();
+  syncNowBtn.textContent=ok?"✓ Synced":"✗ Failed";
+  setTimeout(()=>{syncNowBtn.textContent="⟳ Sync";syncNowBtn.disabled=false;},1800);
 });
 document.getElementById("sync-close-out").addEventListener("click",()=>syncOverlay.classList.remove("open"));
 document.getElementById("sync-close-in").addEventListener("click",()=>syncOverlay.classList.remove("open"));
